@@ -385,7 +385,6 @@ for rx in range(-12, 4, RACK_SPAN):
 # Седельные опоры (заметные блоки)
 for rx in range(-12, 4, RACK_SPAN):
     cube((float(rx), RY, SHOE_Z-0.02), (0.04, 0.18, 0.06), name="FlareShoe_{}".format(int(rx)), m=MW)
-pipe((-12, RY, FLARE_Z), (3, RY, FLARE_Z), r=0.17, m=MY, seg=14, name="FlareGasLine")
 
 # СБРОСНОЙ ГАЗ (FlareGas): сепаратор → эстакада → ствол (ортогонально, без диагоналей)
 # Маршрут: выход сепаратора → эстакада → к стволу → вверх по стволу
@@ -481,4 +480,4 @@ render_path = "/home/pomadoro/projects/flare-predictor/blender/0001.png"
 bpy.ops.wm.save_as_mainfile(filepath=blend_path)
 s.render.filepath = render_path
 bpy.ops.render.render(write_still=True)
-print("✅ v11 сохранена + рендер: {}".format(render_path))
+print("✅ v12 сохранена + рендер: {}".format(render_path))
