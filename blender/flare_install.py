@@ -64,10 +64,11 @@ def pipe(p1, p2, r=0.04, m=MS, seg=12, name="P"):
     return c
 
 # ═══════ ЗЕМЛЯ + ПЛОЩАДКА ═══════
-bpy.ops.mesh.primitive_plane_add(size=60, location=(0, -2, -0.01))
+# Земля ниже, площадка толще и выше — чтобы не было наложения
+bpy.ops.mesh.primitive_plane_add(size=60, location=(0, -2, -0.03))
 sm(obj=bpy.context.active_object, m=MG)
 bpy.context.active_object.name = "Ground"
-cube((0, -2, 0.02), (24, 18, 0.02), name="Pad", m=MN)
+cube((0, -2, 0.06), (24, 18, 0.06), name="Pad", m=MN)
 
 # ═══════ 1. СТВОЛ ═══════
 H, R, FX, FY = 38.0, 1.1, 0.0, -1.0
@@ -89,53 +90,49 @@ for pz, pname in [(12.0, "Joint_LM"), (28.0, "Joint_MU"), (37.0, "Top")]:
         sy = FY + math.sin(ang) * (PR - 0.22)
         cyl((sx, sy, pz+0.75), POST_R, 1.3, name="{}_P{}".format(pname, a), m=MS, seg=6)
 
-# ═══════ 3. ЛЕСТНИЦА: H-ступени + клетка + площадки на стыках + сдвиг 90° ═══════
-LR = R + 0.65          # радиус лестницы от оси ствола
-STEP_H = 0.35          # шаг ступени по высоте
-RAIL_R = 0.025         # радиус рейки ступени
-STEP_W = 0.50          # ширина ступени (расстояние между рейками)
-CAGE_R = LR + 0.30     # радиус защитной клетки
-CAGE_BAR_R = 0.015     # радиус прутьев клетки
+# ═══════ 3. ЛЕСТНИЦА: Н-образная, только на красных секциях, у ствола ═══════
+LR = R + 0.25          # радиус — прямо у ствола
+RAIL_R = 0.025         # радиус реек
+STEP_W = 0.45          # ширина лестницы
+CAGE_R = LR + 0.28     # радиус клетки
+CAGE_BAR_R = 0.014     # тонкие прутья
 
-# Секции лестницы: (z_start, z_end, azimuth_deg)
+# Только красные секции: (z_start, z_end, azimuth_deg)
 LADDER_SECTIONS = [
-    (0.6, 12.0, 0),     # по нижней красной секции, азимут 0°
-    (12.0, 28.0, 90),   # по белой секции, азимут 90°
-    (28.0, 37.5, 180),  # по верхней красной, азимут 180°
+    (0.6, 12.0, 0),      # нижняя красная
+    (28.0, 37.5, 0),     # верхняя красная
 ]
 
 for sec_idx, (z0, z1, az_deg) in enumerate(LADDER_SECTIONS):
     az = math.radians(az_deg)
-    n_steps = int((z1 - z0) / STEP_H)
-    actual_sh = (z1 - z0) / n_steps
-
-    # Направляющий вектор от оси ствола наружу для этого азимута
     ox = FX + math.cos(az) * LR
     oy = FY + math.sin(az) * LR
-    # Перпендикуляр (для ориентации перекладин)
     px = -math.sin(az)
     py = math.cos(az)
 
+    # Левая рейка (жёлтая) — непрерывная
+    lx = ox - px * STEP_W/2
+    ly = oy - py * STEP_W/2
+    pipe((lx, ly, z0), (lx, ly, z1), r=RAIL_R, m=MY, seg=12,
+         name="Rail_L_{}".format(sec_idx))
+
+    # Правая рейка (жёлтая) — непрерывная
+    rx = ox + px * STEP_W/2
+    ry = oy + py * STEP_W/2
+    pipe((rx, ry, z0), (rx, ry, z1), r=RAIL_R, m=MY, seg=12,
+         name="Rail_R_{}".format(sec_idx))
+
+    # Н-образные ступени: ОДНА перекладина на шаг
+    STEP_H = 0.30
+    n_steps = int((z1 - z0) / STEP_H)
+    sh = (z1 - z0) / n_steps
     for si in range(n_steps):
-        z = z0 + si * actual_sh + actual_sh / 2
-        # Левая рейка (внутренняя, ближе к стволу)
-        lx = ox - px * STEP_W/2
-        ly = oy - py * STEP_W/2
-        cyl((lx, ly, z), RAIL_R, actual_sh, name="LR_{}_{}".format(sec_idx, si), m=MS, seg=8)
+        z = z0 + si * sh + sh/2
+        pipe((lx, ly, z), (rx, ry, z), r=RAIL_R*0.7, m=MS, seg=6,
+             name="Rung_{}_{}".format(sec_idx, si))
 
-        # Правая рейка (внешняя)
-        rx = ox + px * STEP_W/2
-        ry = oy + py * STEP_W/2
-        cyl((rx, ry, z), RAIL_R, actual_sh, name="RR_{}_{}".format(sec_idx, si), m=MS, seg=8)
-
-        # Горизонтальная перекладина (H-образная ступень)
-        pipe((lx, ly, z + actual_sh*0.35), (rx, ry, z + actual_sh*0.35),
-             r=RAIL_R*0.8, m=MS, seg=6, name="HC_{}_{}".format(sec_idx, si))
-        pipe((lx, ly, z - actual_sh*0.35), (rx, ry, z - actual_sh*0.35),
-             r=RAIL_R*0.8, m=MS, seg=6, name="HB_{}_{}".format(sec_idx, si))
-
-    # Защитная клетка вокруг секции
-    cage_n = 8  # число вертикальных прутьев
+    # Защитная клетка (тонкие прутья)
+    cage_n = 8
     for ci in range(cage_n):
         ca = math.radians(ci * 360 / cage_n)
         cx = ox + math.cos(ca) * (CAGE_R - LR)
@@ -143,10 +140,11 @@ for sec_idx, (z0, z1, az_deg) in enumerate(LADDER_SECTIONS):
         pipe((cx, cy, z0), (cx, cy, z1), r=CAGE_BAR_R, m=MS, seg=6,
              name="CageV_{}_{}".format(sec_idx, ci))
 
-    # Кольца клетки через каждые 2м
-    for ring_z in [z0 + k*2.0 for k in range(int((z1-z0)/2.0) + 1)]:
+    # Кольца клетки через 1.5 м
+    n_rings = int((z1 - z0) / 1.5) + 1
+    for ri in range(n_rings):
+        ring_z = z0 + ri * 1.5
         if ring_z > z1: ring_z = z1
-        # Смещённый центр кольца
         torus((ox, oy, ring_z), CAGE_R - LR, CAGE_BAR_R,
               name="CageR_{}_{}".format(sec_idx, int(ring_z)), m=MS, seg=20, rseg=6)
 
@@ -265,49 +263,51 @@ cyl((DX-0.5, DY, 2.0), 0.07, 0.35, name="Drain_In", m=MY, seg=10)
 pipe((DX+0.6, DY, 0.5), (DX+0.6, DY, 2.7), r=0.025, m=MS, seg=8, name="Drn_LG")
 cyl((DX+0.6, DY, 2.7), 0.04, 0.03, name="Drn_LGHead", m=MM, seg=10)
 
-# ═══════ 9. ТРУБОПРОВОДНАЯ ЭСТАКАДА ═══════
-# П-образные рамы на фундаментах, RY=-7.0 — дальше от сепаратора
+# ═══════ 9. ТРУБОПРОВОДНАЯ ЭСТАКАДА (УСИЛЕННАЯ) ═══════
 RY = -7.0
-PZ = 2.8
-RACK_SPAN = 3.0
+RACK_SPAN = 3     # int — для range()
+BEAM_Z = 2.6        # верх балки (centre + half scale)
+COL_W = 0.12         # толщина стоек УВЕЛИЧЕНА
+SHOE_Z = BEAM_Z + 0.08
+FLARE_Z = SHOE_Z + 0.17 + 0.03
+PURGE_Z = SHOE_Z + 0.12 + 0.03
 
-# Фундаменты
+# Фундаменты (крупные, заметные)
 for rx in range(-12, 4, RACK_SPAN):
     rx = float(rx)
-    for sy in [RY-0.4, RY+0.4]:
-        cube((rx, sy, 0.15), (0.25, 0.25, 0.15), name="RackFt_{}_{}".format(int(rx), "L" if sy<RY else "R"), m=MN)
+    for sy in [RY-0.5, RY+0.5]:
+        cube((rx, sy, 0.20), (0.30, 0.30, 0.20), name="RackFt_{}_{}".format(int(rx), "L" if sy<RY else "R"), m=MN)
 
-# П-образные рамы
+# П-образные рамы — КРАСНЫЕ стойки, СЕРЫЕ балки
 for rx in range(-12, 4, RACK_SPAN):
     rx = float(rx)
-    for sy in [RY-0.4, RY+0.4]:
-        cube((rx, sy, PZ/2), (0.06, 0.06, PZ/2), name="RackCol_{}_{}".format(int(rx), "L" if sy<RY else "R"), m=MS)
-    cube((rx, RY, PZ), (0.06, 0.40, 0.05), name="RackBeam_{}".format(int(rx)), m=MS)
+    for sy in [RY-0.5, RY+0.5]:
+        # Стойка — толстая и красная
+        cube((rx, sy, BEAM_Z/2), (COL_W/2, COL_W/2, BEAM_Z/2), name="RackCol_{}_{}".format(int(rx), "L" if sy<RY else "R"), m=MR)
+    # Ригель — широкая балка
+    cube((rx, RY, BEAM_Z), (COL_W/2, 0.50, 0.06), name="RackBeam_{}".format(int(rx)), m=MS)
 
-# ── Линия СБРОСНОГО газа: сепаратор → эстакада → ствол (z=5.5) ──
+# Седельные опоры (заметные блоки)
 for rx in range(-12, 4, RACK_SPAN):
-    cube((float(rx), RY, PZ+0.05), (0.03, 0.12, 0.04), name="FlareShoe_{}".format(int(rx)), m=MS)
-pipe((-12, RY, PZ+0.12), (3, RY, PZ+0.12), r=0.17, m=MY, seg=14, name="FlareGasLine")
-# От сепаратора к началу эстакады
-pipe((SX+2.0, SY, SZ+SR+0.4), (SX+2.0, SY, PZ+0.12), r=0.13, m=MY, seg=12, name="Sep2Rack_V")
-pipe((SX+2.0, SY, PZ+0.12), (-12, RY, PZ+0.12), r=0.13, m=MY, seg=12, name="Sep2Rack_H")
-# От конца эстакады к стволу
-pipe((3, RY, PZ+0.12), (FX+0.7, FY, PZ+0.12), r=0.13, m=MY, seg=12, name="Rack2Stack_H")
-pipe((FX+0.7, FY, PZ+0.12), (FX, FY, 5.5), r=0.13, m=MY, seg=12, name="Rack2Stack_R")
+    cube((float(rx), RY, SHOE_Z-0.02), (0.04, 0.18, 0.06), name="FlareShoe_{}".format(int(rx)), m=MW)
+pipe((-12, RY, FLARE_Z), (3, RY, FLARE_Z), r=0.17, m=MY, seg=14, name="FlareGasLine")
 
-# ── Линия ПРОДУВОЧНОГО газа: эстакада → ствол (z=8.0) ──
+# Подключения сбросного газа
+pipe((SX+2.0, SY, SZ+SR+0.4), (SX+2.0, SY, FLARE_Z), r=0.13, m=MY, seg=12, name="Sep2Rack_V")
+pipe((SX+2.0, SY, FLARE_Z), (-12, RY, FLARE_Z), r=0.13, m=MY, seg=12, name="Sep2Rack_H")
+pipe((3, RY, FLARE_Z), (FX+0.7, FY, FLARE_Z), r=0.13, m=MY, seg=12, name="Rack2Stack_H")
+pipe((FX+0.7, FY, FLARE_Z), (FX, FY, 5.5), r=0.13, m=MY, seg=12, name="Rack2Stack_R")
+
+# Продувочный газ
 for rx in range(-9, 5, RACK_SPAN):
-    cube((float(rx), RY+0.25, PZ+0.08), (0.025, 0.08, 0.03), name="PurgeShoe_{}".format(int(rx)), m=MS)
-pipe((-9, RY+0.25, PZ+0.15), (4, RY+0.25, PZ+0.15), r=0.12, m=MY, seg=12, name="PurgeGasLine")
-# Отвод к стволу
-pipe((3, RY+0.25, PZ+0.15), (FX+0.7, FY, PZ+0.15), r=0.10, m=MY, seg=12, name="Purge2Stack_H")
-pipe((FX+0.7, FY, PZ+0.15), (FX, FY, 8.0), r=0.10, m=MY, seg=12, name="Purge2Stack_R")
+    cube((float(rx), RY+0.30, SHOE_Z-0.01), (0.03, 0.10, 0.05), name="PurgeShoe_{}".format(int(rx)), m=MW)
+pipe((-9, RY+0.30, PURGE_Z), (4, RY+0.30, PURGE_Z), r=0.12, m=MY, seg=12, name="PurgeGasLine")
+pipe((3, RY+0.30, PURGE_Z), (FX+0.7, FY, PURGE_Z), r=0.10, m=MY, seg=12, name="Purge2Stack_H")
+pipe((FX+0.7, FY, PURGE_Z), (FX, FY, 8.0), r=0.10, m=MY, seg=12, name="Purge2Stack_R")
 
-# ── Конденсат: сепаратор → дренаж ──
+# Конденсат + Пар
 pipe((SX+0.8, SY, SZ-SR-0.5), (DX-0.5, DY, SZ-SR-0.5), r=0.07, m=MS, seg=8, name="Cond")
 pipe((DX-0.5, DY, SZ-SR-0.5), (DX-0.5, DY, 2.0), r=0.07, m=MS, seg=8, name="CondR")
-
-# ── Паровая линия ──
 pipe((-13, -8, 5.5), (-6, -7, 5.5), r=0.08, m=MS, seg=10, name="Steam1")
 pipe((-6, -7, 5.5), (FX-1.2, FY-2.0, 5.5), r=0.08, m=MS, seg=10, name="Steam2")
 pipe((FX-1.2, FY-2.0, 5.5), (FX-0.8, FY-0.5, 26.0), r=0.06, m=MS, seg=8, name="SteamR")
