@@ -279,7 +279,7 @@ pipe((FX+0.7, FY, BZ), (FX, FY, BZ), r=0.13, m=MY, seg=14, name="GasCollector_2"
 STEAM_Z = BZ + 0.5          # высота парового кольца
 STEAM_R = R + 0.35          # отступ от центра ствола
 STEAM_AZ = math.radians(210)  # азимут стояка (сзади-слева)
-STEAM_PIPE_R = 0.07
+STEAM_PIPE_R = 0.12
 SX0 = FX + math.cos(STEAM_AZ) * STEAM_R
 SY0 = FY + math.sin(STEAM_AZ) * STEAM_R
 
