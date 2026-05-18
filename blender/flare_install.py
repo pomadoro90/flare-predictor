@@ -1,6 +1,6 @@
 """
 ФАКЕЛЬНАЯ УСТАНОВКА НПЗ — low-poly модель для курсовой работы.
-Версия: v11 | Полигонов: ~23K | Blender 5.1.1 | Рендер: EEVEE/Workbench
+Версия: v12 | Полигонов: ~24K | Blender 5.1.1 | Рендер: EEVEE/Workbench
 
 ═══════════════════════════════════════════════════════════
                     АННОТАЦИЯ ОБЪЕКТОВ
@@ -117,6 +117,17 @@ def pipe(p1, p2, r=0.04, m=MS, seg=12, name="P"):
     direction = Vector((dx, dy, dz))
     c.rotation_euler = direction.to_track_quat('Z', 'Y').to_euler()
     return c
+
+def joint(loc, pipe_r, name="J", m=MS):
+    """Torus-стык (фитинг) в точке поворота или подключения трубы"""
+    torus(loc, pipe_r*0.6, pipe_r*0.4, name=name, m=m, seg=16, rseg=8)
+
+def route(points, r, m=MS, seg=12, name="R", joint_m=MS):
+    """Прокладывает трубу по ломаной с joint-ами во всех вершинах."""
+    for i in range(len(points)-1):
+        pipe(points[i], points[i+1], r=r, m=m, seg=seg, name="{}_{}".format(name, i))
+        if i > 0:
+            joint(points[i], r, name="{}_J{}".format(name, i), m=joint_m)
 
 # ═══════ ЗЕМЛЯ + ПЛОЩАДКА ═══════
 # Земля ниже, площадка толще и выше — чтобы не было наложения
@@ -376,25 +387,44 @@ for rx in range(-12, 4, RACK_SPAN):
     cube((float(rx), RY, SHOE_Z-0.02), (0.04, 0.18, 0.06), name="FlareShoe_{}".format(int(rx)), m=MW)
 pipe((-12, RY, FLARE_Z), (3, RY, FLARE_Z), r=0.17, m=MY, seg=14, name="FlareGasLine")
 
-# Подключения сбросного газа
-pipe((SX+2.0, SY, SZ+SR+0.4), (SX+2.0, SY, FLARE_Z), r=0.13, m=MY, seg=12, name="Sep2Rack_V")
-pipe((SX+2.0, SY, FLARE_Z), (-12, RY, FLARE_Z), r=0.13, m=MY, seg=12, name="Sep2Rack_H")
-pipe((3, RY, FLARE_Z), (FX+0.7, FY, FLARE_Z), r=0.13, m=MY, seg=12, name="Rack2Stack_H")
-pipe((FX+0.7, FY, FLARE_Z), (FX, FY, 5.5), r=0.13, m=MY, seg=12, name="Rack2Stack_R")
+# СБРОСНОЙ ГАЗ (FlareGas): сепаратор → эстакада → ствол (ортогонально, без диагоналей)
+# Маршрут: выход сепаратора → эстакада → к стволу → вверх по стволу
+route([
+    (SX+2.0, SY, SZ+SR+0.4),       # 0: выход из сепаратора (верхний патрубок)
+    (SX+2.0, RY,  SZ+SR+0.4),       # 1: к эстакаде по Y
+    (SX+2.0, RY,  FLARE_Z),         # 2: вверх на уровень эстакады
+    (3.0,    RY,  FLARE_Z),         # 3: по эстакаде вправо
+    (FX+0.7, FY,  FLARE_Z),         # 4: к стволу
+    (FX+0.7, FY,  5.5),             # 5: вверх по стволу
+    (FX,     FY,  5.5),             # 6: вход в ствол — joint в точке врезки
+], r=0.13, m=MY, seg=14, name="FlareGas", joint_m=MS)
 
-# Продувочный газ
-for rx in range(-9, 5, RACK_SPAN):
-    cube((float(rx), RY+0.30, SHOE_Z-0.01), (0.03, 0.10, 0.05), name="PurgeShoe_{}".format(int(rx)), m=MW)
-pipe((-9, RY+0.30, PURGE_Z), (4, RY+0.30, PURGE_Z), r=0.12, m=MY, seg=12, name="PurgeGasLine")
-pipe((3, RY+0.30, PURGE_Z), (FX+0.7, FY, PURGE_Z), r=0.10, m=MY, seg=12, name="Purge2Stack_H")
-pipe((FX+0.7, FY, PURGE_Z), (FX, FY, 8.0), r=0.10, m=MY, seg=12, name="Purge2Stack_R")
+# ПРОДУВОЧНЫЙ ГАЗ (Purge): эстакада → ствол (ортогонально)
+route([
+    (-9.0,      RY+0.30, PURGE_Z),  # 0: начало на эстакаде
+    (0.0,       RY+0.30, PURGE_Z),  # 1: по эстакаде
+    (FX+0.7,    FY,      PURGE_Z),  # 2: к стволу
+    (FX+0.7,    FY,      8.0),      # 3: вверх по стволу
+    (FX,        FY,      8.0),      # 4: вход в ствол — joint в точке врезки
+], r=0.10, m=MY, seg=12, name="PurgeGas", joint_m=MS)
 
-# Конденсат + Пар
-pipe((SX+0.8, SY, SZ-SR-0.5), (DX-0.5, DY, SZ-SR-0.5), r=0.07, m=MS, seg=8, name="Cond")
-pipe((DX-0.5, DY, SZ-SR-0.5), (DX-0.5, DY, 2.0), r=0.07, m=MS, seg=8, name="CondR")
-pipe((-13, -8, 5.5), (-6, -7, 5.5), r=0.08, m=MS, seg=10, name="Steam1")
-pipe((-6, -7, 5.5), (FX-1.2, FY-2.0, 5.5), r=0.08, m=MS, seg=10, name="Steam2")
-pipe((FX-1.2, FY-2.0, 5.5), (FX-0.8, FY-0.5, 26.0), r=0.06, m=MS, seg=8, name="SteamR")
+# КОНДЕНСАТ (Cond): сепаратор → дренаж
+route([
+    (SX+0.8, SY,  SZ-SR-0.1),      # 0: дренажный патрубок сепаратора (>0, над землёй)
+    (DX-0.5, DY,  SZ-SR-0.1),      # 1: к дренажу
+    (DX-0.5, DY,  2.0),             # 2: вверх к входу дренажной ёмкости — joint в врезке
+], r=0.07, m=MS, seg=8, name="Condensate", joint_m=MS)
+
+# ПАР (Steam): от магистрали → ствол → паровой стояк (ортогонально)
+route([
+    (-13.0,     -8.0,       5.5),   # 0: магистраль
+    (-13.0,     -7.0,       5.5),   # 1: поворот к эстакаде
+    (-6.0,      -7.0,       5.5),   # 2: по эстакаде
+    (-6.0,      FY-2.0,     5.5),   # 3: к стволу
+    (FX-1.2,    FY-2.0,     5.5),   # 4: к подножию ствола
+    (FX-1.2,    FY-2.0,    26.0),   # 5: вверх до уровня парового кольца
+    (FX-0.8,    FY-0.5,    26.0),   # 6: к паровому стояку — joint
+], r=0.06, m=MS, seg=8, name="SteamLine", joint_m=MS)
 
 # ═══════ 9a. ДАТЧИК РАСХОДА НА ПРОДУВОЧНОЙ ЛИНИИ ═══════
 # Flow sensor: корпус-коробка с измерительным элементом на горизонтальной трубе
