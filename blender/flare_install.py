@@ -188,8 +188,9 @@ for sx in [SX-2.5, SX+2.5]:
     cyl((sx, SY, 0.75), 0.20, 0.7, name="Sep_Saddle", m=MS, seg=14)
 sb = cyl((SX, SY, SZ), SR, SL, name="Sep_Body", m=MW, seg=30)
 sb.rotation_euler = (0, math.radians(90), 0)
+# ── заглушки-диски вместо сфер ──
 for dx in [-SL/2, SL/2]:
-    sphere((SX+dx, SY, SZ), SR, name="Sep_Cap", m=MS, seg=16)
+    cyl((SX+dx, SY, SZ), SR, 0.10, rot=(0, math.radians(90), 0), name="Sep_Cap", m=MS, seg=30)
 cyl((SX-2.0, SY, SZ+SR+0.3), 0.16, 0.5, name="Sep_In", m=MS, seg=14)
 cyl((SX+2.0, SY, SZ+SR+0.3), 0.13, 0.4, name="Sep_Vent", m=MS, seg=14)
 cyl((SX+0.8, SY, SZ-SR-0.4), 0.11, 0.6, name="Sep_Drain", m=MS, seg=14)
@@ -198,14 +199,14 @@ for si in range(9):
     cube((LX, LY, 0.5+si*0.50), (0.28, 0.02, 0.02), name="SepL{}".format(si), m=MS)
 for dx_s, dy_s in [(-0.22, -0.15), (0.22, -0.15), (-0.22, 0.15), (0.22, 0.15)]:
     cyl((LX+dx_s, LY+dy_s, 2.5), 0.028, 4.5, name="SepCage", m=MS, seg=6)
-sphere((SX, SY-0.8, SZ+SR+0.5), 0.14, name="SepS_L", m=MM)
-sphere((SX-2.5, SY-0.4, SZ+SR+0.5), 0.12, name="SepS_P", m=MM)
+
+# ── без сфер на сепараторе ──
 
 # ═══════ 7. ДРЕНАЖ ═══════
 DX, DY = -11.5, -5.0
 cube((DX, DY, 0.2), (0.6, 0.6, 0.2), name="Drn_Ft", m=MN)
 cyl((DX, DY, 1.6), 0.45, 2.4, name="Drain", m=MS, seg=22)
-sphere((DX, DY, 2.9), 0.45, name="Drain_Top", m=MS, seg=16)
+cyl((DX, DY, 2.9), 0.45, 0.10, name="Drain_Top", m=MS, seg=22)
 cyl((DX-0.5, DY, 2.0), 0.07, 0.35, name="Drain_In", m=MY, seg=10)
 
 # ═══════ 8. ТРУБОПРОВОДЫ ═══════
@@ -223,19 +224,11 @@ pipe((-13, -8, 5.5), (-6, -7, 5.5), r=0.08, m=MS, seg=10, name="Steam1")
 pipe((-6, -7, 5.5), (FX-1.2, FY-2.0, 5.5), r=0.08, m=MS, seg=10, name="Steam2")
 pipe((FX-1.2, FY-2.0, 5.5), (FX-0.8, FY-0.5, 26.0), r=0.06, m=MS, seg=8, name="SteamR")
 
-# ═══════ 9. ДАТЧИКИ ═══════
-sphere((FX+1.5, FY, 2.5), 0.12, name="S_Tfl", m=MM)
-sphere((FX-1.5, FY, 2.5), 0.12, name="S_Ppg", m=MM)
-sphere((FX+1.5, FY, 11.0), 0.10, name="S_Qpg", m=MM)
-sphere((FX-1.5, FY, 21.0), 0.12, name="S_Stm", m=MM)
-sphere((FX+1.6, FY, 5.5), 0.16, name="Ind_G", m=MF)
-sphere((FX-1.6, FY, 5.5), 0.16, name="Ind_R", m=MR)
-
-# ═══════ 10. СВЕТ ═══════
+# ═══════ 9. СВЕТ ═══════
 bpy.ops.object.light_add(type='SUN', location=(25, -20, 35))
 bpy.context.active_object.data.energy = 4.5
 
-# ═══════ 11. КАМЕРА ═══════
+# ═══════ 10. КАМЕРА ═══════
 bpy.ops.object.camera_add()
 cam = bpy.context.active_object
 cam.name = "Camera"
@@ -245,7 +238,7 @@ tgt = Vector((-4, -3, 15))
 cam.rotation_euler = (tgt - cam.location).to_track_quat('-Z', 'Y').to_euler()
 bpy.context.scene.camera = cam
 
-# ═══════ 12. EEVEE + ГОЛУБОЕ НЕБО ═══════
+# ═══════ 11. EEVEE + ГОЛУБОЕ НЕБО ═══════
 s = bpy.context.scene
 s.render.engine = 'BLENDER_EEVEE'
 s.eevee.taa_render_samples = 32
