@@ -1,6 +1,6 @@
 """
 ФАКЕЛЬНАЯ УСТАНОВКА НПЗ — low-poly модель для курсовой работы.
-Версия: v13 | Полигонов: ~23K | Blender 5.1.1 | Рендер: EEVEE/Workbench
+Версия: v14 | Полигонов: ~24K | Blender 5.1.1 | Рендер: EEVEE/Workbench
 
 ═══════════════════════════════════════════════════════════
                     АННОТАЦИЯ ОБЪЕКТОВ
@@ -274,12 +274,37 @@ for da in [60, 180, 300]:
 pipe((FX+0.7, FY, 5.5), (FX+0.7, FY, BZ), r=0.13, m=MY, seg=14, name="GasCollector_1")
 pipe((FX+0.7, FY, BZ), (FX, FY, BZ), r=0.13, m=MY, seg=14, name="GasCollector_2")
 
-# ПАР: подаётся внутри ствола (внешняя магистраль не нужна).
-# Кольцевой паровой коллектор вокруг горелки (питание изнутри ствола)
-STEAM_Z = BZ + 0.5
+# ПАР: внешний стояк вдоль ствола, посекционная окраска как у ствола, крепления-хомуты
+# Стояк сзади-слева (азимут ~220°), от земли до уровня парового кольца
+STEAM_Z = BZ + 0.5          # высота парового кольца
+STEAM_R = R + 0.35          # отступ от центра ствола
+STEAM_AZ = math.radians(210)  # азимут стояка (сзади-слева)
+STEAM_PIPE_R = 0.07
+SX0 = FX + math.cos(STEAM_AZ) * STEAM_R
+SY0 = FY + math.sin(STEAM_AZ) * STEAM_R
+
+# Три секции стояка — красная / белая / красная
+pipe((SX0, SY0, 0.5),  (SX0, SY0, 12.0), r=STEAM_PIPE_R, m=MR, seg=16, name="SteamRise_L")
+pipe((SX0, SY0, 12.0), (SX0, SY0, 28.0), r=STEAM_PIPE_R, m=MW, seg=16, name="SteamRise_M")
+pipe((SX0, SY0, 28.0), (SX0, SY0, STEAM_Z), r=STEAM_PIPE_R, m=MR, seg=16, name="SteamRise_U")
+
+# Крепления-хомуты каждые 2 метра (torus вокруг стояка + стержень к стволу)
+CLAMP_R = STEAM_PIPE_R * 1.5
+for cz in [z/10.0 for z in range(20, int(STEAM_Z*10), 20)]:  # каждые 2.0м
+    # Хомут — torus вокруг стояка
+    torus((SX0, SY0, cz), CLAMP_R, 0.012, name="SCL_T_{}".format(int(cz*10)), m=MS, seg=12, rseg=6)
+    # Стержень от хомута к стволу
+    pipe((SX0+math.cos(STEAM_AZ)*CLAMP_R, SY0+math.sin(STEAM_AZ)*CLAMP_R, cz),
+         (FX+math.cos(STEAM_AZ)*R, FY+math.sin(STEAM_AZ)*R, cz),
+         r=0.012, m=MS, seg=6, name="SCL_B_{}".format(int(cz*10)))
+
+# Кольцевой паровой коллектор вокруг горелки
 STEAM_RING_R = 0.62
 for ring_h in [STEAM_Z, STEAM_Z+0.6]:
     torus((FX, FY, ring_h), STEAM_RING_R, 0.04, name="SteamRing_{}".format(int(ring_h*10)), m=MS, seg=26, rseg=8)
+    # Соединительная трубка от стояка к кольцу
+    pipe((SX0, SY0, ring_h), (FX-STEAM_RING_R*math.cos(STEAM_AZ+math.pi), FY-STEAM_RING_R*math.sin(STEAM_AZ+math.pi), ring_h),
+         r=0.04, m=MS, seg=10, name="SteamBrg_{}".format(int(ring_h*10)))
 
 # Паровые форсунки (сопла) — 8 шт. по окружности, направлены в зону горения
 for fi in range(8):
@@ -469,4 +494,4 @@ render_path = "/home/pomadoro/projects/flare-predictor/blender/0001.png"
 bpy.ops.wm.save_as_mainfile(filepath=blend_path)
 s.render.filepath = render_path
 bpy.ops.render.render(write_still=True)
-print("✅ v13 сохранена + рендер: {}".format(render_path))
+print("✅ v14 сохранена + рендер: {}".format(render_path))
