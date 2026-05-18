@@ -147,9 +147,9 @@ cyl((FX, FY, 0.25), 1.35, 0.5, name="Stack_Base", m=MS, seg=30)
 PR, RH, POST_R = 2.0, 0.05, 0.045
 # Платформы: стык красный-белый (12м), стык белый-красный (28м), верхняя (37м)
 for pz, pname in [(12.0, "Joint_LM"), (28.0, "Joint_MU"), (37.0, "Top")]:
-    cyl((FX, FY, pz), PR, 0.12, name="{}_D".format(pname), m=MS, seg=36)
+    cyl((FX, FY, pz), PR, 0.12, name="{}_D".format(pname), m=MS, seg=48)
     for rh in [0.40, 0.90, 1.30]:
-        torus((FX, FY, pz+rh), PR-0.18, RH, name="{}_R{}".format(pname, rh), m=MS, seg=36, rseg=6)
+        torus((FX, FY, pz+rh), PR-0.18, RH, name="{}_R{}".format(pname, rh), m=MS, seg=48, rseg=12)
     for a in range(0, 360, 45):
         ang = math.radians(a)
         sx = FX + math.cos(ang) * (PR - 0.22)
@@ -213,7 +213,7 @@ for sec_idx, (z0, z1, az_deg) in enumerate(LADDER_SECTIONS):
         ring_z = z0 + ri * 1.5
         if ring_z > z1: ring_z = z1
         torus((ox, oy, ring_z), CAGE_R - LR, CAGE_BAR_R,
-              name="CageR_{}_{}".format(sec_idx, int(ring_z)), m=MS, seg=24, rseg=12)
+              name="CageR_{}_{}".format(sec_idx, int(ring_z)), m=MS, seg=36, rseg=12)
         # Боковые распорки от кольца клетки к стволу (левая + правая)
         for ra in [90, 270]:
             rang = math.radians(az_deg + ra)
@@ -245,7 +245,7 @@ BZ = H + 0.3
 cyl((FX, FY, BZ), 0.80, 1.0, name="Burner_B", m=MB, seg=26)
 cyl((FX, FY, BZ+1.3), 0.45, 2.2, name="Burner_N", m=MB, seg=26)
 for j, dz in enumerate([0.5, 1.0, 1.5, 2.0]):
-    torus((FX, FY, BZ+0.4+dz*0.8), 0.50, 0.04, name="Bur_R{}".format(j), m=MS, seg=26, rseg=6)
+    torus((FX, FY, BZ+0.4+dz*0.8), 0.50, 0.04, name="Bur_R{}".format(j), m=MS, seg=36, rseg=12)
 bpy.ops.mesh.primitive_cone_add(vertices=20, radius1=0.10, radius2=0.80, depth=7.0, location=(FX, FY, BZ+6.5))
 sm(obj=bpy.context.active_object, m=MF)
 bpy.context.active_object.name = "Flame"
@@ -292,7 +292,7 @@ pipe((SX0, SY0, 28.0), (SX0, SY0, STEAM_Z), r=STEAM_PIPE_R, m=MR, seg=16, name="
 CLAMP_R = STEAM_PIPE_R * 1.5
 for cz in [z/10.0 for z in range(20, int(STEAM_Z*10), 20)]:  # каждые 2.0м
     # Хомут — torus вокруг стояка
-    torus((SX0, SY0, cz), CLAMP_R, 0.012, name="SCL_T_{}".format(int(cz*10)), m=MS, seg=12, rseg=6)
+    torus((SX0, SY0, cz), CLAMP_R, 0.012, name="SCL_T_{}".format(int(cz*10)), m=MS, seg=24, rseg=12)
     # Стержень от хомута к стволу
     pipe((SX0+math.cos(STEAM_AZ)*CLAMP_R, SY0+math.sin(STEAM_AZ)*CLAMP_R, cz),
          (FX+math.cos(STEAM_AZ)*R, FY+math.sin(STEAM_AZ)*R, cz),
@@ -301,7 +301,7 @@ for cz in [z/10.0 for z in range(20, int(STEAM_Z*10), 20)]:  # каждые 2.0�
 # Кольцевой паровой коллектор вокруг горелки
 STEAM_RING_R = 0.62
 for ring_h in [STEAM_Z, STEAM_Z+0.6]:
-    torus((FX, FY, ring_h), STEAM_RING_R, 0.04, name="SteamRing_{}".format(int(ring_h*10)), m=MS, seg=26, rseg=8)
+    torus((FX, FY, ring_h), STEAM_RING_R, 0.04, name="SteamRing_{}".format(int(ring_h*10)), m=MS, seg=48, rseg=12)
     # Соединительная трубка от стояка к кольцу
     pipe((SX0, SY0, ring_h), (FX-STEAM_RING_R*math.cos(STEAM_AZ+math.pi), FY-STEAM_RING_R*math.sin(STEAM_AZ+math.pi), ring_h),
          r=0.04, m=MS, seg=10, name="SteamBrg_{}".format(int(ring_h*10)))
