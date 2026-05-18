@@ -97,9 +97,10 @@ STEP_W = 0.45          # ширина лестницы
 CAGE_R = LR + 0.28     # радиус клетки
 CAGE_BAR_R = 0.014     # тонкие прутья
 
-# Только красные секции: (z_start, z_end, azimuth_deg)
+# Три секции лестницы: нижняя красная, белая, верхняя красная
 LADDER_SECTIONS = [
     (0.6, 12.0, 0),      # нижняя красная
+    (12.0, 28.0, 90),    # белая ← возвращаю!
     (28.0, 37.5, 0),     # верхняя красная
 ]
 
@@ -110,19 +111,19 @@ for sec_idx, (z0, z1, az_deg) in enumerate(LADDER_SECTIONS):
     px = -math.sin(az)
     py = math.cos(az)
 
-    # Левая рейка (жёлтая) — непрерывная
+    # Координаты реек
     lx = ox - px * STEP_W/2
     ly = oy - py * STEP_W/2
-    pipe((lx, ly, z0), (lx, ly, z1), r=RAIL_R, m=MY, seg=12,
-         name="Rail_L_{}".format(sec_idx))
-
-    # Правая рейка (жёлтая) — непрерывная
     rx = ox + px * STEP_W/2
     ry = oy + py * STEP_W/2
-    pipe((rx, ry, z0), (rx, ry, z1), r=RAIL_R, m=MY, seg=12,
+
+    # Рейки — СТАЛЬНЫЕ серые
+    pipe((lx, ly, z0), (lx, ly, z1), r=RAIL_R, m=MS, seg=12,
+         name="Rail_L_{}".format(sec_idx))
+    pipe((rx, ry, z0), (rx, ry, z1), r=RAIL_R, m=MS, seg=12,
          name="Rail_R_{}".format(sec_idx))
 
-    # Н-образные ступени: ОДНА перекладина на шаг
+    # Ступени: одна перекладина на шаг
     STEP_H = 0.30
     n_steps = int((z1 - z0) / STEP_H)
     sh = (z1 - z0) / n_steps
@@ -131,7 +132,7 @@ for sec_idx, (z0, z1, az_deg) in enumerate(LADDER_SECTIONS):
         pipe((lx, ly, z), (rx, ry, z), r=RAIL_R*0.7, m=MS, seg=6,
              name="Rung_{}_{}".format(sec_idx, si))
 
-    # Защитная клетка (тонкие прутья)
+    # Защитная клетка
     cage_n = 8
     for ci in range(cage_n):
         ca = math.radians(ci * 360 / cage_n)
@@ -140,13 +141,21 @@ for sec_idx, (z0, z1, az_deg) in enumerate(LADDER_SECTIONS):
         pipe((cx, cy, z0), (cx, cy, z1), r=CAGE_BAR_R, m=MS, seg=6,
              name="CageV_{}_{}".format(sec_idx, ci))
 
-    # Кольца клетки через 1.5 м
+    # Кольца клетки + радиальные кронштейны к стволу
     n_rings = int((z1 - z0) / 1.5) + 1
     for ri in range(n_rings):
         ring_z = z0 + ri * 1.5
         if ring_z > z1: ring_z = z1
         torus((ox, oy, ring_z), CAGE_R - LR, CAGE_BAR_R,
               name="CageR_{}_{}".format(sec_idx, int(ring_z)), m=MS, seg=20, rseg=6)
+        # Радиальные распорки от кольца к стволу (4 шт.)
+        for ra in [0, 90, 180, 270]:
+            rang = math.radians(ra)
+            csx = ox + math.cos(rang) * (CAGE_R - LR)
+            csy = oy + math.sin(rang) * (CAGE_R - LR)
+            pipe((csx, csy, ring_z), (FX+math.cos(rang)*LR*0.6, FY+math.sin(rang)*LR*0.6, ring_z),
+                 r=CAGE_BAR_R*0.8, m=MS, seg=6,
+                 name="Brkt_{}_{}_{}".format(sec_idx, int(ring_z), ra))
 
 # ═══════ 4. ОТТЯЖКИ — НА КРАСНЫХ СЕКЦИЯХ, АНКЕРЫ 1.4×1.4×0.8м ═══════
 GH = [10.0, 20.0, 34.0]
