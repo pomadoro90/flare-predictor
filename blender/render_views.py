@@ -1,5 +1,6 @@
 """
-render_views.py v5 — 4 цветных ракурса (EEVEE, GPU-friendly).
+render_views.py v7 — 4 ракурса (Workbench, Studio light, Material color).
+Запуск: blender --background flare_install.blend --python render_views.py
 """
 import bpy, math, os
 from mathutils import Vector
@@ -7,23 +8,22 @@ from mathutils import Vector
 out = "/home/pomadoro/projects/flare-predictor/blender/renders/"
 os.makedirs(out, exist_ok=True)
 
-bpy.context.scene.render.engine = 'BLENDER_EEVEE'
-bpy.context.scene.eevee.taa_render_samples = 32
+bpy.context.scene.render.engine = 'BLENDER_WORKBENCH'
+bpy.context.scene.display.shading.light = 'STUDIO'
+bpy.context.scene.display.shading.color_type = 'MATERIAL'
 bpy.context.scene.render.resolution_x = 1920
 bpy.context.scene.render.resolution_y = 1080
 bpy.context.scene.render.image_settings.file_format = 'PNG'
-bpy.context.scene.view_settings.exposure = 1.5
-bpy.context.scene.view_settings.gamma = 1.2
 
-TX, TY, TZ = -3.5, -2.5, 15
+TX, TY, TZ = -4, -3, 15
 cam = bpy.context.scene.camera
-cam.data.lens = 22
+cam.data.lens = 18
 
 views = [
-    ((24, -22, 16),  (TX, TY, TZ), "v5_front_right"),
-    ((-22, -20, 12), (TX, TY, TZ), "v5_front_left"),
-    ((0, -28, 18),   (TX, TY, TZ), "v5_front_low"),
-    ((-4, 14, 30),   (TX, TY, TZ), "v5_top"),
+    ((30, -28, 20),  (TX, TY, TZ), "v7_front_right"),
+    ((-28, -26, 16), (TX, TY, TZ), "v7_front_left"),
+    ((0, -32, 22),   (TX, TY, TZ), "v7_front_low"),
+    ((-5, 16, 34),   (TX, TY, TZ), "v7_top"),
 ]
 
 for vloc, tloc, name in views:
