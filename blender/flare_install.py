@@ -1,6 +1,6 @@
 """
 ФАКЕЛЬНАЯ УСТАНОВКА НПЗ — low-poly модель для курсовой работы.
-Версия: v12 | Полигонов: ~24K | Blender 5.1.1 | Рендер: EEVEE/Workbench
+Версия: v13 | Полигонов: ~23K | Blender 5.1.1 | Рендер: EEVEE/Workbench
 
 ═══════════════════════════════════════════════════════════
                     АННОТАЦИЯ ОБЪЕКТОВ
@@ -274,16 +274,12 @@ for da in [60, 180, 300]:
 pipe((FX+0.7, FY, 5.5), (FX+0.7, FY, BZ), r=0.13, m=MY, seg=14, name="GasCollector_1")
 pipe((FX+0.7, FY, BZ), (FX, FY, BZ), r=0.13, m=MY, seg=14, name="GasCollector_2")
 
-# ПАРОВАЯ ТРУБКА: от SteamR (26м) вверх до горелки
+# ПАР: подаётся внутри ствола (внешняя магистраль не нужна).
+# Кольцевой паровой коллектор вокруг горелки (питание изнутри ствола)
 STEAM_Z = BZ + 0.5
-pipe((FX-0.8, FY-0.5, 26.0), (FX-0.8, FY-0.5, STEAM_Z), r=0.06, m=MS, seg=12, name="SteamRise")
-
-# Кольцевой паровой коллектор вокруг горелки
 STEAM_RING_R = 0.62
 for ring_h in [STEAM_Z, STEAM_Z+0.6]:
     torus((FX, FY, ring_h), STEAM_RING_R, 0.04, name="SteamRing_{}".format(int(ring_h*10)), m=MS, seg=26, rseg=8)
-    # Соединительные трубки от стояка к кольцу
-    pipe((FX-0.8, FY-0.5, ring_h), (FX-STEAM_RING_R, FY-0.5, ring_h), r=0.04, m=MS, seg=10, name="SteamBrg_{}".format(int(ring_h*10)))
 
 # Паровые форсунки (сопла) — 8 шт. по окружности, направлены в зону горения
 for fi in range(8):
@@ -414,16 +410,9 @@ route([
     (DX-0.5, DY,  2.0),             # 2: вверх к входу дренажной ёмкости — joint в врезке
 ], r=0.07, m=MS, seg=8, name="Condensate", joint_m=MS)
 
-# ПАР (Steam): от магистрали → ствол → паровой стояк (ортогонально)
-route([
-    (-13.0,     -8.0,       5.5),   # 0: магистраль
-    (-13.0,     -7.0,       5.5),   # 1: поворот к эстакаде
-    (-6.0,      -7.0,       5.5),   # 2: по эстакаде
-    (-6.0,      FY-2.0,     5.5),   # 3: к стволу
-    (FX-1.2,    FY-2.0,     5.5),   # 4: к подножию ствола
-    (FX-1.2,    FY-2.0,    26.0),   # 5: вверх до уровня парового кольца
-    (FX-0.8,    FY-0.5,    26.0),   # 6: к паровому стояку — joint
-], r=0.06, m=MS, seg=8, name="SteamLine", joint_m=MS)
+# ПАР (Steam): магистраль скрыта внутри ствола, снаружи только паровое кольцо + форсунки
+# Внешняя паровая труба не нужна — пар подаётся по внутреннему стояку
+# (см. секцию 5 — SteamRing + Nozzles)
 
 # ═══════ 9a. ДАТЧИК РАСХОДА НА ПРОДУВОЧНОЙ ЛИНИИ ═══════
 # Flow sensor: корпус-коробка с измерительным элементом на горизонтальной трубе
@@ -480,4 +469,4 @@ render_path = "/home/pomadoro/projects/flare-predictor/blender/0001.png"
 bpy.ops.wm.save_as_mainfile(filepath=blend_path)
 s.render.filepath = render_path
 bpy.ops.render.render(write_still=True)
-print("✅ v12 сохранена + рендер: {}".format(render_path))
+print("✅ v13 сохранена + рендер: {}".format(render_path))
