@@ -167,7 +167,7 @@ for h in GH:
         pipe((FX, FY, h), (ax, ay, 0.80), r=r, m=MC, seg=14,
              name="Guy_{}_{}".format(int(h), ga))
 
-# ═══════ 5. ГОРЕЛКА + ПЛАМЯ ═══════
+# ═══════ 5. ГОРЕЛКА + ПЛАМЯ + ПАРОВОЙ КОЛЛЕКТОР ═══════
 BZ = H + 0.3
 cyl((FX, FY, BZ), 0.80, 1.0, name="Burner_B", m=MB, seg=26)
 cyl((FX, FY, BZ+1.3), 0.45, 2.2, name="Burner_N", m=MB, seg=26)
@@ -181,7 +181,50 @@ for a in [0, 90, 180, 270]:
     px = FX + math.cos(ang) * 0.35; py = FY + math.sin(ang) * 0.35
     cyl((px, py, BZ+2.5), 0.05, 1.0, name="Pilot{}".format(a), m=MB, seg=8)
 
-# ═══════ 6. СЕПАРАТОР ═══════
+# ПАРОВАЯ ТРУБКА: от SteamR (26м) вверх до горелки
+STEAM_Z = BZ + 0.5
+pipe((FX-0.8, FY-0.5, 26.0), (FX-0.8, FY-0.5, STEAM_Z), r=0.06, m=MS, seg=12, name="SteamRise")
+
+# Кольцевой паровой коллектор вокруг горелки
+STEAM_RING_R = 0.62
+for ring_h in [STEAM_Z, STEAM_Z+0.6]:
+    torus((FX, FY, ring_h), STEAM_RING_R, 0.04, name="SteamRing_{}".format(int(ring_h*10)), m=MS, seg=26, rseg=8)
+    # Соединительные трубки от стояка к кольцу
+    pipe((FX-0.8, FY-0.5, ring_h), (FX-STEAM_RING_R, FY-0.5, ring_h), r=0.04, m=MS, seg=10, name="SteamBrg_{}".format(int(ring_h*10)))
+
+# Паровые форсунки (сопла) — 8 шт. по окружности, направлены в зону горения
+for fi in range(8):
+    fa = math.radians(fi * 45)
+    fx = FX + math.cos(fa) * STEAM_RING_R
+    fy = FY + math.sin(fa) * STEAM_RING_R
+    # Короткая трубка-форсунка, направленная внутрь к пламени
+    pipe((fx, fy, STEAM_Z+0.3), (FX+math.cos(fa)*0.35, FY+math.sin(fa)*0.35, STEAM_Z+0.3),
+         r=0.025, m=MS, seg=8, name="Nozzle{}".format(fi))
+
+# ═══════ 6. ДАТЧИКИ НА СТВОЛЕ ═══════
+# Датчик давления: короткий цилиндр на кронштейне
+def pressure_sensor(loc, name):
+    cube((loc[0], loc[1], loc[2]-0.08), (0.06, 0.06, 0.04), name=name+"_Brkt", m=MS)
+    cyl(loc, 0.05, 0.10, name=name+"_Body", m=MY, seg=12)
+    cyl((loc[0], loc[1], loc[2]+0.07), 0.03, 0.04, name=name+"_Top", m=MM, seg=10)
+
+# Датчик температуры: длинный цилиндр в гильзе
+def temp_sensor(loc, name):
+    cube((loc[0], loc[1], loc[2]-0.06), (0.05, 0.05, 0.03), name=name+"_Brkt", m=MS)
+    cyl(loc, 0.04, 0.18, name=name+"_Probe", m=MR, seg=10)
+    cyl((loc[0], loc[1], loc[2]+0.12), 0.05, 0.05, name=name+"_Head", m=MM, seg=12)
+
+# На нижней красной секции: P_flare, Q_flare
+pressure_sensor((FX, FY+1.2, 3.5), "PS_Pflare")
+pressure_sensor((FX, FY-1.2, 3.5), "PS_Qflare")
+# На белой секции: P_purge, Q_purge
+pressure_sensor((FX, FY+1.2, 18.0), "PS_Ppurge")
+pressure_sensor((FX, FY-1.2, 18.0), "PS_Qpurge")
+# На верхней красной секции: T_flame, Steam_Q
+temp_sensor((FX, FY+1.2, 30.0), "TS_Tflame")
+pressure_sensor((FX, FY-1.2, 30.0), "PS_SteamQ")
+
+# ═══════ 7. СЕПАРАТОР ═══════
 SX, SY, SZ, SL, SR = -7.0, -4.5, 1.6, 7.5, 1.4
 for sx in [SX-2.5, SX+2.5]:
     cube((sx, SY, 0.3), (0.45, 0.9, 0.3), name="Sep_Ft", m=MN)
@@ -202,24 +245,69 @@ for dx_s, dy_s in [(-0.22, -0.15), (0.22, -0.15), (-0.22, 0.15), (0.22, 0.15)]:
 
 # ── без сфер на сепараторе ──
 
-# ═══════ 7. ДРЕНАЖ ═══════
+# Уровнемер на сепараторе (вертикальная трубка сбоку)
+pipe((SX-3.0, SY+1.0, 0.8), (SX-3.0, SY+1.0, SZ+SR+0.2), r=0.03, m=MS, seg=8, name="Sep_LG")
+for lz in [1.2, 2.0, 2.8]:
+    cyl((SX-3.0, SY+1.0, lz), 0.05, 0.04, name="Sep_LGFlg", m=MM, seg=10)
+
+# Манометр на сепараторе (сверху на корпусе)
+cyl((SX-1.0, SY+0.8, SZ+SR+0.5), 0.04, 0.06, name="Sep_PG_Body", m=MY, seg=12)
+cyl((SX-1.0, SY+0.8, SZ+SR+0.56), 0.06, 0.02, name="Sep_PG_Face", m=MW, seg=16)
+
+# ═══════ 8. ДРЕНАЖ ═══════
 DX, DY = -11.5, -5.0
 cube((DX, DY, 0.2), (0.6, 0.6, 0.2), name="Drn_Ft", m=MN)
 cyl((DX, DY, 1.6), 0.45, 2.4, name="Drain", m=MS, seg=22)
 cyl((DX, DY, 2.9), 0.45, 0.10, name="Drain_Top", m=MS, seg=22)
 cyl((DX-0.5, DY, 2.0), 0.07, 0.35, name="Drain_In", m=MY, seg=10)
 
-# ═══════ 8. ТРУБОПРОВОДЫ ═══════
-RY, PZ = -6.0, 2.8
-for rx in [-11, -8, -5, -2, 1]:
-    cyl((rx, RY, 1.3), 0.06, 2.6, name="RackLeg", m=MS, seg=10)
-pipe((-12, RY, PZ), (3, RY, PZ), r=0.17, m=MY, seg=14, name="GasMain")
-pipe((-9, RY, PZ+0.35), (4, RY, PZ+0.35), r=0.12, m=MY, seg=12, name="GasSec")
-pipe((SX+2.0, SY, SZ+SR+0.4), (SX+2.0, SY, 3.5), r=0.13, m=MY, seg=12, name="S2S_V")
-pipe((SX+2.0, SY, 3.5), (FX+0.7, FY, 3.5), r=0.13, m=MY, seg=12, name="S2S_H")
-pipe((FX+0.7, FY, 3.5), (FX, FY, 5.5), r=0.13, m=MY, seg=12, name="S2S_R")
+# Датчик уровня на дренаже
+pipe((DX+0.6, DY, 0.5), (DX+0.6, DY, 2.7), r=0.025, m=MS, seg=8, name="Drn_LG")
+cyl((DX+0.6, DY, 2.7), 0.04, 0.03, name="Drn_LGHead", m=MM, seg=10)
+
+# ═══════ 9. ТРУБОПРОВОДНАЯ ЭСТАКАДА ═══════
+# П-образные рамы на фундаментах, RY=-7.0 — дальше от сепаратора
+RY = -7.0
+PZ = 2.8
+RACK_SPAN = 3.0
+
+# Фундаменты
+for rx in range(-12, 4, RACK_SPAN):
+    rx = float(rx)
+    for sy in [RY-0.4, RY+0.4]:
+        cube((rx, sy, 0.15), (0.25, 0.25, 0.15), name="RackFt_{}_{}".format(int(rx), "L" if sy<RY else "R"), m=MN)
+
+# П-образные рамы
+for rx in range(-12, 4, RACK_SPAN):
+    rx = float(rx)
+    for sy in [RY-0.4, RY+0.4]:
+        cube((rx, sy, PZ/2), (0.06, 0.06, PZ/2), name="RackCol_{}_{}".format(int(rx), "L" if sy<RY else "R"), m=MS)
+    cube((rx, RY, PZ), (0.06, 0.40, 0.05), name="RackBeam_{}".format(int(rx)), m=MS)
+
+# ── Линия СБРОСНОГО газа: сепаратор → эстакада → ствол (z=5.5) ──
+for rx in range(-12, 4, RACK_SPAN):
+    cube((float(rx), RY, PZ+0.05), (0.03, 0.12, 0.04), name="FlareShoe_{}".format(int(rx)), m=MS)
+pipe((-12, RY, PZ+0.12), (3, RY, PZ+0.12), r=0.17, m=MY, seg=14, name="FlareGasLine")
+# От сепаратора к началу эстакады
+pipe((SX+2.0, SY, SZ+SR+0.4), (SX+2.0, SY, PZ+0.12), r=0.13, m=MY, seg=12, name="Sep2Rack_V")
+pipe((SX+2.0, SY, PZ+0.12), (-12, RY, PZ+0.12), r=0.13, m=MY, seg=12, name="Sep2Rack_H")
+# От конца эстакады к стволу
+pipe((3, RY, PZ+0.12), (FX+0.7, FY, PZ+0.12), r=0.13, m=MY, seg=12, name="Rack2Stack_H")
+pipe((FX+0.7, FY, PZ+0.12), (FX, FY, 5.5), r=0.13, m=MY, seg=12, name="Rack2Stack_R")
+
+# ── Линия ПРОДУВОЧНОГО газа: эстакада → ствол (z=8.0) ──
+for rx in range(-9, 5, RACK_SPAN):
+    cube((float(rx), RY+0.25, PZ+0.08), (0.025, 0.08, 0.03), name="PurgeShoe_{}".format(int(rx)), m=MS)
+pipe((-9, RY+0.25, PZ+0.15), (4, RY+0.25, PZ+0.15), r=0.12, m=MY, seg=12, name="PurgeGasLine")
+# Отвод к стволу
+pipe((3, RY+0.25, PZ+0.15), (FX+0.7, FY, PZ+0.15), r=0.10, m=MY, seg=12, name="Purge2Stack_H")
+pipe((FX+0.7, FY, PZ+0.15), (FX, FY, 8.0), r=0.10, m=MY, seg=12, name="Purge2Stack_R")
+
+# ── Конденсат: сепаратор → дренаж ──
 pipe((SX+0.8, SY, SZ-SR-0.5), (DX-0.5, DY, SZ-SR-0.5), r=0.07, m=MS, seg=8, name="Cond")
 pipe((DX-0.5, DY, SZ-SR-0.5), (DX-0.5, DY, 2.0), r=0.07, m=MS, seg=8, name="CondR")
+
+# ── Паровая линия ──
 pipe((-13, -8, 5.5), (-6, -7, 5.5), r=0.08, m=MS, seg=10, name="Steam1")
 pipe((-6, -7, 5.5), (FX-1.2, FY-2.0, 5.5), r=0.08, m=MS, seg=10, name="Steam2")
 pipe((FX-1.2, FY-2.0, 5.5), (FX-0.8, FY-0.5, 26.0), r=0.06, m=MS, seg=8, name="SteamR")
