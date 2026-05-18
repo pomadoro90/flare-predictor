@@ -76,53 +76,95 @@ cyl((FX, FY, 20.1), R, 16.0, name="Stack_M", m=MW, seg=30)
 cyl((FX, FY, 33.1), R, 10.0, name="Stack_U", m=MR, seg=30)
 cyl((FX, FY, 0.25), 1.35, 0.5, name="Stack_Base", m=MS, seg=30)
 
-# ═══════ 2. ПЛАТФОРМЫ ═══════
+# ═══════ 2. ПЛАТФОРМЫ — только на стыках секций + верхняя ═══════
 PR, RH, POST_R = 2.0, 0.05, 0.045
-for i, pz in enumerate([4.0, 14.0, 29.5]):
-    cyl((FX, FY, pz), PR, 0.15, name="Plat{}_D".format(i), m=MS, seg=36)
-    for rh in [0.45, 1.0, 1.4]:
-        torus((FX, FY, pz+rh), PR-0.18, RH, name="Plat{}_R{}".format(i, rh), m=MS, seg=36, rseg=6)
+# Платформы: стык красный-белый (12м), стык белый-красный (28м), верхняя (37м)
+for pz, pname in [(12.0, "Joint_LM"), (28.0, "Joint_MU"), (37.0, "Top")]:
+    cyl((FX, FY, pz), PR, 0.12, name="{}_D".format(pname), m=MS, seg=36)
+    for rh in [0.40, 0.90, 1.30]:
+        torus((FX, FY, pz+rh), PR-0.18, RH, name="{}_R{}".format(pname, rh), m=MS, seg=36, rseg=6)
     for a in range(0, 360, 45):
         ang = math.radians(a)
         sx = FX + math.cos(ang) * (PR - 0.22)
         sy = FY + math.sin(ang) * (PR - 0.22)
-        cyl((sx, sy, pz+0.85), POST_R, 1.5, name="Plat{}_P{}".format(i, a), m=MS, seg=6)
+        cyl((sx, sy, pz+0.75), POST_R, 1.3, name="{}_P{}".format(pname, a), m=MS, seg=6)
 
-# ═══════ 3. ЛЕСТНИЦА ═══════
-SR, STEPS, TURNS = R + 0.75, 65, 4.0
-SZ0, SZ1 = 0.6, 37.5
-SH = (SZ1 - SZ0) / STEPS
-SA = (TURNS * 2 * math.pi) / STEPS
-for i in range(STEPS):
-    a = i * SA; z = SZ0 + i * SH
-    cx = FX + math.cos(a) * SR; cy = FY + math.sin(a) * SR
-    s = cube((cx, cy, z+0.06), (0.7, 0.04, 0.06), name="Step{}".format(i), m=MS)
-    s.rotation_euler = (0, 0, a + math.pi/2)
-IR, OR = R + 0.30, R + 0.95
-for i in range(0, STEPS, 4):
-    a = i * SA; z = SZ0 + i * SH
-    for rr, side in [(IR, "I"), (OR, "O")]:
-        sx = FX + math.cos(a) * rr; sy = FY + math.sin(a) * rr
-        cyl((sx, sy, z+0.55), 0.028, 1.1, name="RP{}_{}".format(i, side), m=MS, seg=6)
+# ═══════ 3. ЛЕСТНИЦА: H-ступени + клетка + площадки на стыках + сдвиг 90° ═══════
+LR = R + 0.65          # радиус лестницы от оси ствола
+STEP_H = 0.35          # шаг ступени по высоте
+RAIL_R = 0.025         # радиус рейки ступени
+STEP_W = 0.50          # ширина ступени (расстояние между рейками)
+CAGE_R = LR + 0.30     # радиус защитной клетки
+CAGE_BAR_R = 0.015     # радиус прутьев клетки
 
-# ═══════ 4. ОТТЯЖКИ — ТРОС ОТ СТВОЛА ПРЯМО В БЕТОННЫЙ АНКЕР ═══════
-# 3 уровня × 4 направления, анкеры 1×1×0.6м, трос r=0.08
-GH = [14.0, 20.0, 26.0]
+# Секции лестницы: (z_start, z_end, azimuth_deg)
+LADDER_SECTIONS = [
+    (0.6, 12.0, 0),     # по нижней красной секции, азимут 0°
+    (12.0, 28.0, 90),   # по белой секции, азимут 90°
+    (28.0, 37.5, 180),  # по верхней красной, азимут 180°
+]
+
+for sec_idx, (z0, z1, az_deg) in enumerate(LADDER_SECTIONS):
+    az = math.radians(az_deg)
+    n_steps = int((z1 - z0) / STEP_H)
+    actual_sh = (z1 - z0) / n_steps
+
+    # Направляющий вектор от оси ствола наружу для этого азимута
+    ox = FX + math.cos(az) * LR
+    oy = FY + math.sin(az) * LR
+    # Перпендикуляр (для ориентации перекладин)
+    px = -math.sin(az)
+    py = math.cos(az)
+
+    for si in range(n_steps):
+        z = z0 + si * actual_sh + actual_sh / 2
+        # Левая рейка (внутренняя, ближе к стволу)
+        lx = ox - px * STEP_W/2
+        ly = oy - py * STEP_W/2
+        cyl((lx, ly, z), RAIL_R, actual_sh, name="LR_{}_{}".format(sec_idx, si), m=MS, seg=8)
+
+        # Правая рейка (внешняя)
+        rx = ox + px * STEP_W/2
+        ry = oy + py * STEP_W/2
+        cyl((rx, ry, z), RAIL_R, actual_sh, name="RR_{}_{}".format(sec_idx, si), m=MS, seg=8)
+
+        # Горизонтальная перекладина (H-образная ступень)
+        pipe((lx, ly, z + actual_sh*0.35), (rx, ry, z + actual_sh*0.35),
+             r=RAIL_R*0.8, m=MS, seg=6, name="HC_{}_{}".format(sec_idx, si))
+        pipe((lx, ly, z - actual_sh*0.35), (rx, ry, z - actual_sh*0.35),
+             r=RAIL_R*0.8, m=MS, seg=6, name="HB_{}_{}".format(sec_idx, si))
+
+    # Защитная клетка вокруг секции
+    cage_n = 8  # число вертикальных прутьев
+    for ci in range(cage_n):
+        ca = math.radians(ci * 360 / cage_n)
+        cx = ox + math.cos(ca) * (CAGE_R - LR)
+        cy = oy + math.sin(ca) * (CAGE_R - LR)
+        pipe((cx, cy, z0), (cx, cy, z1), r=CAGE_BAR_R, m=MS, seg=6,
+             name="CageV_{}_{}".format(sec_idx, ci))
+
+    # Кольца клетки через каждые 2м
+    for ring_z in [z0 + k*2.0 for k in range(int((z1-z0)/2.0) + 1)]:
+        if ring_z > z1: ring_z = z1
+        # Смещённый центр кольца
+        torus((ox, oy, ring_z), CAGE_R - LR, CAGE_BAR_R,
+              name="CageR_{}_{}".format(sec_idx, int(ring_z)), m=MS, seg=20, rseg=6)
+
+# ═══════ 4. ОТТЯЖКИ — НА КРАСНЫХ СЕКЦИЯХ, АНКЕРЫ 1.4×1.4×0.8м ═══════
+GH = [10.0, 20.0, 34.0]
 GA = [45, 135, 225, 315]
-GR = 20.0  # радиус установки анкеров
-
+GR = 20.0
 for h in GH:
+    r = 0.09 if h == 20.0 else 0.08
     for ga in GA:
         ang = math.radians(ga)
         ax = FX + math.cos(ang) * GR
         ay = FY + math.sin(ang) * GR
-
-        # Массивный бетонный анкер прямо на земле
-        cube((ax, ay, 0.30), (0.50, 0.50, 0.30), 
+        # Анкерный блок: центр z=0.40, scale=0.70 → верх z=0.80
+        cube((ax, ay, 0.40), (0.70, 0.70, 0.40), 
              name="Anc_{}_{}".format(int(h), ga), m=MN)
-
-        # Трос напрямую от ствола к вершине анкера
-        pipe((FX, FY, h), (ax, ay, 0.60), r=0.08, m=MC, seg=14,
+        # Трос от ствола к вершине анкера
+        pipe((FX, FY, h), (ax, ay, 0.80), r=r, m=MC, seg=14,
              name="Guy_{}_{}".format(int(h), ga))
 
 # ═══════ 5. ГОРЕЛКА + ПЛАМЯ ═══════
