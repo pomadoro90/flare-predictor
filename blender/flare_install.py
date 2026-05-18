@@ -200,9 +200,9 @@ for sec_idx, (z0, z1, az_deg) in enumerate(LADDER_SECTIONS):
         if ring_z > z1: ring_z = z1
         torus((ox, oy, ring_z), CAGE_R - LR, CAGE_BAR_R,
               name="CageR_{}_{}".format(sec_idx, int(ring_z)), m=MS, seg=24, rseg=12)
-        # Радиальные распорки от кольца клетки к стволу (4 шт.)
-        for ra in [0, 90, 180, 270]:
-            rang = math.radians(ra)
+        # Боковые распорки от кольца клетки к стволу (левая + правая)
+        for ra in [90, 270]:
+            rang = math.radians(az_deg + ra)
             csx = ox + math.cos(rang) * (CAGE_R - LR)
             csy = oy + math.sin(rang) * (CAGE_R - LR)
             pipe((csx, csy, ring_z), (FX+math.cos(rang)*LR*0.6, FY+math.sin(rang)*LR*0.6, ring_z),
