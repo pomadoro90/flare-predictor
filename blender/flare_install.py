@@ -38,20 +38,22 @@ def sm(obj, m):
 # ═══════ ПРИМИТИВЫ ═══════
 def cyl(loc, r, d, rot=(0,0,0), name="C", m=MS, seg=20):
     bpy.ops.mesh.primitive_cylinder_add(vertices=seg, radius=r, depth=d, location=loc, rotation=rot)
-    o = bpy.context.active_object; o.name = name; sm(obj=o, m=m); return o
+    o = bpy.context.active_object; o.name = name; sm(obj=o, m=m)
+    bpy.ops.object.shade_smooth()
+    return o
 
 def cube(loc, scale, name="Q", m=MS):
     bpy.ops.mesh.primitive_cube_add(location=loc)
-    o = bpy.context.active_object; o.name = name; o.scale = scale; sm(obj=o, m=m); return o
-
-def sphere(loc, r, name="S", m=MM, seg=12):
-    bpy.ops.mesh.primitive_uv_sphere_add(segments=seg, ring_count=8, radius=r, location=loc)
-    o = bpy.context.active_object; o.name = name; sm(obj=o, m=m); return o
+    o = bpy.context.active_object; o.name = name; o.scale = scale; sm(obj=o, m=m)
+    bpy.ops.object.shade_smooth()
+    return o
 
 def torus(loc, R, r, name="T", m=MS, seg=20, rseg=8):
     bpy.ops.mesh.primitive_torus_add(major_radius=R, minor_radius=r, location=loc,
                                       major_segments=seg, minor_segments=rseg)
-    o = bpy.context.active_object; o.name = name; sm(obj=o, m=m); return o
+    o = bpy.context.active_object; o.name = name; sm(obj=o, m=m)
+    bpy.ops.object.shade_smooth()
+    return o
 
 def pipe(p1, p2, r=0.04, m=MS, seg=12, name="P"):
     dx = p2[0] - p1[0]; dy = p2[1] - p1[1]; dz = p2[2] - p1[2]
@@ -141,21 +143,13 @@ for sec_idx, (z0, z1, az_deg) in enumerate(LADDER_SECTIONS):
         pipe((cx, cy, z0), (cx, cy, z1), r=CAGE_BAR_R, m=MS, seg=6,
              name="CageV_{}_{}".format(sec_idx, ci))
 
-    # Кольца клетки + радиальные кронштейны к стволу
+    # Кольца клетки
     n_rings = int((z1 - z0) / 1.5) + 1
     for ri in range(n_rings):
         ring_z = z0 + ri * 1.5
         if ring_z > z1: ring_z = z1
         torus((ox, oy, ring_z), CAGE_R - LR, CAGE_BAR_R,
-              name="CageR_{}_{}".format(sec_idx, int(ring_z)), m=MS, seg=20, rseg=6)
-        # Радиальные распорки от кольца к стволу (4 шт.)
-        for ra in [0, 90, 180, 270]:
-            rang = math.radians(ra)
-            csx = ox + math.cos(rang) * (CAGE_R - LR)
-            csy = oy + math.sin(rang) * (CAGE_R - LR)
-            pipe((csx, csy, ring_z), (FX+math.cos(rang)*LR*0.6, FY+math.sin(rang)*LR*0.6, ring_z),
-                 r=CAGE_BAR_R*0.8, m=MS, seg=6,
-                 name="Brkt_{}_{}_{}".format(sec_idx, int(ring_z), ra))
+              name="CageR_{}_{}".format(sec_idx, int(ring_z)), m=MS, seg=24, rseg=12)
 
 # ═══════ 4. ОТТЯЖКИ — НА КРАСНЫХ СЕКЦИЯХ, АНКЕРЫ 1.4×1.4×0.8м ═══════
 GH = [10.0, 20.0, 34.0]
@@ -174,7 +168,7 @@ for h in GH:
         pipe((FX, FY, h), (ax, ay, 0.80), r=r, m=MC, seg=14,
              name="Guy_{}_{}".format(int(h), ga))
 
-# ═══════ 5. ГОРЕЛКА + ПЛАМЯ + ПАРОВОЙ КОЛЛЕКТОР ═══════
+# ═══════ 5. ГОРЕЛКА + ДЕЖУРНЫЕ ГОРЕЛКИ + ПАР + ГАЗОВЫЙ КОЛЛЕКТОР ═══════
 BZ = H + 0.3
 cyl((FX, FY, BZ), 0.80, 1.0, name="Burner_B", m=MB, seg=26)
 cyl((FX, FY, BZ+1.3), 0.45, 2.2, name="Burner_N", m=MB, seg=26)
@@ -183,10 +177,30 @@ for j, dz in enumerate([0.5, 1.0, 1.5, 2.0]):
 bpy.ops.mesh.primitive_cone_add(vertices=20, radius1=0.10, radius2=0.80, depth=7.0, location=(FX, FY, BZ+6.5))
 sm(obj=bpy.context.active_object, m=MF)
 bpy.context.active_object.name = "Flame"
+bpy.ops.object.shade_smooth()
 for a in [0, 90, 180, 270]:
     ang = math.radians(a)
     px = FX + math.cos(ang) * 0.35; py = FY + math.sin(ang) * 0.35
     cyl((px, py, BZ+2.5), 0.05, 1.0, name="Pilot{}".format(a), m=MB, seg=8)
+
+# ДЕЖУРНЫЕ ГОРЕЛКИ — 3 шт. вокруг сопла, постоянное пламя
+for da in [60, 180, 300]:
+    dang = math.radians(da)
+    dpx = FX + math.cos(dang) * 0.60
+    dpy = FY + math.sin(dang) * 0.60
+    # Корпус дежурной горелки
+    cyl((dpx, dpy, BZ+2.0), 0.06, 0.35, name="Stand_Flame_{}".format(da), m=MB, seg=12)
+    # Маленький язычок пламени (медный оттенок)
+    bpy.ops.mesh.primitive_cone_add(vertices=12, radius1=0.03, radius2=0.10, depth=1.2,
+                                     location=(dpx, dpy, BZ+2.8))
+    so = bpy.context.active_object; so.name = "Pilot_Flame_{}".format(da)
+    sm(obj=so, m=mat("PilotFlame", (0.95, 0.65, 0.20)))
+    bpy.ops.object.shade_smooth()
+
+# ГАЗОВЫЙ КОЛЛЕКТОР — прямая линия от эстакады к вершине
+# Труба сбросного газа идёт к основанию горелки
+pipe((FX+0.7, FY, 5.5), (FX+0.7, FY, BZ), r=0.13, m=MY, seg=14, name="GasCollector_1")
+pipe((FX+0.7, FY, BZ), (FX, FY, BZ), r=0.13, m=MY, seg=14, name="GasCollector_2")
 
 # ПАРОВАЯ ТРУБКА: от SteamR (26м) вверх до горелки
 STEAM_Z = BZ + 0.5
