@@ -59,7 +59,7 @@
   bash render_all.sh
 """
 import bpy, math, os
-from mathutils import Vector
+from mathutils import Vector, Matrix
 
 bpy.ops.object.select_all(action='SELECT')
 bpy.ops.object.delete(use_global=False)
@@ -118,16 +118,71 @@ def pipe(p1, p2, r=0.04, m=MS, seg=12, name="P"):
     c.rotation_euler = direction.to_track_quat('Z', 'Y').to_euler()
     return c
 
-def joint(loc, pipe_r, name="J", m=MS):
-    """Torus-стык (фитинг) в точке поворота или подключения трубы"""
-    torus(loc, pipe_r*0.6, pipe_r*0.4, name=name, m=m, seg=16, rseg=8)
+def joint(loc, pipe_r, v_in, v_out, name="J", m=MS):
+    """Четверть тороидального колена (90°) — гладкий изгиб между v_in и v_out.
+    Центр в loc, порты на расстоянии R от центра по осям X и Z (локально).
+    Ось X направлена по v_in, ось Z — по v_out."""
+    import bmesh
+    R = pipe_r * 1.5  # радиус изгиба по центру
+    r = pipe_r
+
+    mesh = bpy.data.meshes.new(name)
+    obj = bpy.data.objects.new(name, mesh)
+    bpy.context.collection.objects.link(obj)
+    obj.location = loc
+
+    bm = bmesh.new()
+    u_seg, v_seg = 10, 8
+    rings = []
+    for i in range(u_seg + 1):
+        u = (i / u_seg) * (math.pi / 2)
+        ring = []
+        for j in range(v_seg):
+            v = (j / v_seg) * 2 * math.pi
+            x = (R + r * math.cos(v)) * math.cos(u)
+            y = r * math.sin(v)
+            z = (R + r * math.cos(v)) * math.sin(u)
+            ring.append(bm.verts.new((x, y, z)))
+        rings.append(ring)
+    bm.verts.ensure_lookup_table()
+    for i in range(u_seg):
+        for j in range(v_seg):
+            jn = (j + 1) % v_seg
+            bm.faces.new((rings[i][j], rings[i][jn], rings[i+1][jn], rings[i+1][j]))
+    bm.to_mesh(mesh)
+    bm.free()
+    sm(obj=obj, m=m)
+
+    # Поворот: ось X -> v_in, ось Z -> v_out
+    vy = v_out.cross(v_in)
+    if vy.length < 1e-6:
+        vy = Vector((0, 1, 0))
+    vy.normalize()
+    mat = Matrix((v_in, vy, v_out)).transposed().to_4x4()
+    obj.matrix_world = Matrix.Translation(loc) @ mat
+    bpy.ops.object.shade_smooth()
+    return obj
 
 def route(points, r, m=MS, seg=12, name="R", joint_m=MS):
-    """Прокладывает трубу по ломаной с joint-ами во всех вершинах."""
+    """Прокладывает трубу по ломаной с коленами (четвертной изгиб) во всех вершинах."""
     for i in range(len(points)-1):
-        pipe(points[i], points[i+1], r=r, m=m, seg=seg, name="{}_{}".format(name, i))
+        p0 = Vector(points[i])
+        p1 = Vector(points[i+1])
+        # Труба укорочена на R (радиус изгиба), чтобы освободить место под колено
+        R = r * 1.5
+        v_dir = (p1 - p0).normalized()
+        seg_len = (p1 - p0).length
+        if seg_len < 2 * R:
+            # Слишком короткий сегмент — труба без укорочения
+            pipe(p0, p1, r=r, m=m, seg=seg, name="{}_{}".format(name, i))
+        else:
+            pipe(p0 + v_dir * R, p1 - v_dir * R, r=r, m=m, seg=seg, name="{}_{}".format(name, i))
         if i > 0:
-            joint(points[i], r, name="{}_J{}".format(name, i), m=joint_m)
+            # Колено в точке поворота: направления от предыдущего сегмента и к следующему
+            v_in = (Vector(points[i-1]) - Vector(points[i])).normalized()
+            v_out = (p1 - Vector(points[i])).normalized()
+            joint(Vector(points[i]), r, v_in, v_out,
+                  name="{}_J{}".format(name, i), m=joint_m)
 
 # ═══════ ЗЕМЛЯ + ПЛОЩАДКА ═══════
 # Земля ниже, площадка толще и выше — чтобы не было наложения
@@ -318,7 +373,6 @@ pipe((SX0, SY0, 12.0), (SX0, SY0, 28.0), r=STEAM_PIPE_R, m=MW, seg=16, name="Ste
 pipe((SX0, SY0, 28.0), (SX0, SY0, STEAM_Z), r=STEAM_PIPE_R, m=MR, seg=16, name="SteamRise_U")
 # Горизонтальная подводка: от стояка (SS_Z) → к эстакаде по Y
 pipe((SX0, SY0, SS_Z), (SX0, -7.0, SS_Z), r=STEAM_PIPE_R*0.7, m=MS, seg=12, name="SteamFeed")
-joint((SX0, SY0, SS_Z), STEAM_PIPE_R*0.7, name="SteamFeed_J", m=MS)
 
 # Крепления-хомуты каждые 2 метра (torus вокруг стояка + стержень к стволу)
 CLAMP_R = STEAM_PIPE_R * 1.5
