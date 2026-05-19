@@ -345,15 +345,30 @@ for fi in range(8):
          r=0.025, m=MS, seg=8, name="Nozzle{}".format(fi))
 
 # ═══════ 6. ДАТЧИКИ НА СТВОЛЕ ═══════
-# Датчик давления: короткий цилиндр на кронштейне
+# Датчик давления: корпус на кронштейне + стержень к стволу
 def pressure_sensor(loc, name):
+    # Направление к стволу: от датчика к поверхности (центр ствола (FX,FY), радиус R)
+    dx, dy = loc[0] - FX, loc[1] - FY
+    dist = math.sqrt(dx*dx + dy*dy)
+    ux, uy = dx/dist, dy/dist  # единичный вектор от ствола к датчику
+    stem_r = 0.015
     cube((loc[0], loc[1], loc[2]-0.08), (0.06, 0.06, 0.04), name=name+"_Brkt", m=MS)
+    # Стержень от кронштейна к поверхности ствола
+    pipe((FX + ux*R, FY + uy*R, loc[2]-0.08), (loc[0]-ux*0.06, loc[1]-uy*0.06, loc[2]-0.08),
+         r=stem_r, m=MS, seg=8, name=name+"_Stem")
     cyl(loc, 0.05, 0.10, name=name+"_Body", m=MY, seg=12)
     cyl((loc[0], loc[1], loc[2]+0.07), 0.03, 0.04, name=name+"_Top", m=MM, seg=10)
 
-# Датчик температуры: длинный цилиндр в гильзе
+# Датчик температуры: длинный зонд в гильзе + стержень к стволу
 def temp_sensor(loc, name):
+    dx, dy = loc[0] - FX, loc[1] - FY
+    dist = math.sqrt(dx*dx + dy*dy)
+    ux, uy = dx/dist, dy/dist
+    stem_r = 0.015
     cube((loc[0], loc[1], loc[2]-0.06), (0.05, 0.05, 0.03), name=name+"_Brkt", m=MS)
+    # Стержень от кронштейна к поверхности ствола
+    pipe((FX + ux*R, FY + uy*R, loc[2]-0.06), (loc[0]-ux*0.05, loc[1]-uy*0.05, loc[2]-0.06),
+         r=stem_r, m=MS, seg=8, name=name+"_Stem")
     cyl(loc, 0.04, 0.18, name=name+"_Probe", m=MR, seg=10)
     cyl((loc[0], loc[1], loc[2]+0.12), 0.05, 0.05, name=name+"_Head", m=MM, seg=12)
 
