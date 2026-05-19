@@ -153,13 +153,16 @@ def joint(loc, pipe_r, v_in, v_out, name="J", m=MS):
     bm.free()
     sm(obj=obj, m=m)
 
-    # Оси колена: X порт (u=0) на (R,0,0) → ось X = v_in, ось Z = v_out
-    vy = v_out.cross(v_in)
-    if vy.length < 1e-6:
-        vy = Vector((0, 1, 0))
-    vy.normalize()
-    mat = Matrix((v_in, vy, v_out)).to_4x4()
-    obj.matrix_world = Matrix.Translation(loc) @ mat
+    # Входной порт на (R,0,0) с нормалью −X → X_local = -v_in, позиция = loc − R·v_in
+    # Выходной порт на (0,0,R) с нормалью −Z → Z_local = +v_out, позиция = loc + R·v_out
+    mx = -v_in
+    mz = v_out
+    my = mz.cross(mx)
+    if my.length < 1e-6:
+        my = Vector((0, 1, 0))
+    my.normalize()
+    mx = my.cross(mz)
+    obj.matrix_world = Matrix.Translation(loc) @ Matrix((mx, my, mz)).to_4x4()
     bpy.ops.object.shade_smooth()
     return obj
 
