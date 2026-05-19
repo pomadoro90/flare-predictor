@@ -119,17 +119,15 @@ def pipe(p1, p2, r=0.04, m=MS, seg=12, name="P"):
     return c
 
 def joint(loc, pipe_r, v_in, v_out, name="J", m=MS):
-    """Четверть тороидального колена (90°) — гладкий изгиб между v_in и v_out.
-    Центр в loc, порты на расстоянии R от центра по осям X и Z (локально).
-    Ось X направлена по v_in, ось Z — по v_out."""
+    """Четверть тороидального колена (90°), порты +X и +Z наружу.
+    Поворот: ось Z → v_out, ось X → v_in — как у pipe(), через track_quat."""
     import bmesh
-    R = pipe_r * 1.5  # радиус изгиба по центру
+    R = pipe_r * 1.5
     r = pipe_r
 
     mesh = bpy.data.meshes.new(name)
     obj = bpy.data.objects.new(name, mesh)
     bpy.context.collection.objects.link(obj)
-    obj.location = loc
 
     bm = bmesh.new()
     u_seg, v_seg = 10, 8
@@ -139,9 +137,10 @@ def joint(loc, pipe_r, v_in, v_out, name="J", m=MS):
         ring = []
         for j in range(v_seg):
             v = (j / v_seg) * 2 * math.pi
-            x = (R + r * math.cos(v)) * math.cos(u)
+            # Порт +X: (R,0,0), порт +Z: (0,0,R) — отзеркалено для наружных нормалей
+            x = (R + r * math.cos(v)) * math.sin(u)   # было cos(u) → sin(u): порт в +X при u=π/2
             y = r * math.sin(v)
-            z = (R + r * math.cos(v)) * math.sin(u)
+            z = (R + r * math.cos(v)) * math.cos(u)   # было sin(u) → cos(u): порт в +Z при u=0
             ring.append(bm.verts.new((x, y, z)))
         rings.append(ring)
     bm.verts.ensure_lookup_table()
@@ -153,16 +152,10 @@ def joint(loc, pipe_r, v_in, v_out, name="J", m=MS):
     bm.free()
     sm(obj=obj, m=m)
 
-    # Входной порт (X): outward normal (1,0,0) → X_local = v_in, центр loc + R·v_in
-    # Выходной порт (Z): outward normal (0,0,1) → Z_local = v_out, центр loc + R·v_out
-    mx = v_in
-    mz = v_out
-    my = mz.cross(mx)
-    if my.length < 1e-6:
-        my = Vector((0, 1, 0))
-    my.normalize()
-    mx = my.cross(mz)
-    obj.matrix_world = Matrix.Translation(loc) @ Matrix((mx, my, mz)).to_4x4()
+    # Центр колена = точка поворота; поворот как у pipe: Z → v_out, X → v_in
+    obj.location = loc
+    direction = v_out
+    obj.rotation_euler = direction.to_track_quat('Z', 'X').to_euler()
     bpy.ops.object.shade_smooth()
     return obj
 
