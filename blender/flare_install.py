@@ -321,9 +321,9 @@ pipe((SX0, SY0, SS_Z), (SX0, -7.0, SS_Z), r=STEAM_PIPE_R*0.7, m=MS, seg=12, name
 joint((SX0, SY0, SS_Z), STEAM_PIPE_R*0.7, name="SteamFeed_J", m=MS)
 
 # Крепления-хомуты каждые 2 метра (torus вокруг стояка + стержень к стволу)
-# Начинаем от SS_Z (низ стояка), а не от земли
 CLAMP_R = STEAM_PIPE_R * 1.5
-for cz in [z/10.0 for z in range(int(SS_Z*10), int(STEAM_Z*10), 20)]:  # каждые 2.0м
+# Начинаем от SS_Z + 0.5 (чуть выше joint-а), чтобы не накладываться на стык
+for cz in [z/10.0 for z in range(int(SS_Z*10+5), int(STEAM_Z*10), 20)]:  # каждые 2.0м
     # Хомут — torus вокруг стояка
     torus((SX0, SY0, cz), CLAMP_R, 0.012, name="SCL_T_{}".format(int(cz*10)), m=MS, seg=24, rseg=12)
     # Стержень от хомута к стволу
