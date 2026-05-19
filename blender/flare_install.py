@@ -153,12 +153,14 @@ def joint(loc, pipe_r, v_in, v_out, name="J", m=MS):
     bm.free()
     sm(obj=obj, m=m)
 
-    # Поворот: ось X -> v_in, ось Z -> v_out
-    vy = v_out.cross(v_in)
+    # Поворот: входной порт колена (X) смотрит в сторону центра тора (−X)
+    # поэтому v_in разворачиваем; ось X -> -v_in, ось Z -> v_out
+    v_in_neg = -v_in
+    vy = v_out.cross(v_in_neg)
     if vy.length < 1e-6:
         vy = Vector((0, 1, 0))
     vy.normalize()
-    mat = Matrix((v_in, vy, v_out)).transposed().to_4x4()
+    mat = Matrix((v_in_neg, vy, v_out)).to_4x4()
     obj.matrix_world = Matrix.Translation(loc) @ mat
     bpy.ops.object.shade_smooth()
     return obj
