@@ -216,26 +216,19 @@ for sec_idx, (z0, z1, az_deg) in enumerate(LADDER_SECTIONS):
         pipe((lx, ly, z), (rx, ry, z), r=RAIL_R*0.7, m=MS, seg=6,
              name="Rung_{}_{}".format(sec_idx, si))
 
-    # Защитная клетка — с вырезом спереди для входа
-    # Передние прутья (в секторе ±45° от азимута лестницы) НЕ создаём
-    # Нижнее кольцо (на уровне платформы/земли) тоже пропускаем — свободный проход
+    # Защитная клетка
     cage_n = 8
     for ci in range(cage_n):
         ca = math.radians(ci * 360 / cage_n)
-        # Пропускаем передние прутья: разница углов с азимутом лестницы < 45°
-        if abs((ca - az + math.pi) % (2*math.pi) - math.pi) < math.radians(50):
-            continue
         cx = ox + math.cos(ca) * (CAGE_R - LR)
         cy = oy + math.sin(ca) * (CAGE_R - LR)
-        pipe((cx, cy, z0 + 0.25), (cx, cy, z1), r=CAGE_BAR_R, m=MS, seg=6,
+        pipe((cx, cy, z0), (cx, cy, z1), r=CAGE_BAR_R, m=MS, seg=6,
              name="CageV_{}_{}".format(sec_idx, ci))
 
     # Кольца клетки + радиальные распорки к стволу
-    # Нижнее кольцо (z0) пропускаем — свободный вход
     n_rings = int((z1 - z0) / 1.5) + 1
-    ring_z0_offset = 0.8  # первое кольцо на высоте z0+0.8м от пола платформы/земли
     for ri in range(n_rings):
-        ring_z = z0 + ring_z0_offset + ri * 1.5
+        ring_z = z0 + ri * 1.5
         if ring_z > z1: ring_z = z1
         torus((ox, oy, ring_z), CAGE_R - LR, CAGE_BAR_R,
               name="CageR_{}_{}".format(sec_idx, int(ring_z)), m=MS, seg=36, rseg=12)
