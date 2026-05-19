@@ -240,6 +240,17 @@ for sec_idx, (z0, z1, az_deg) in enumerate(LADDER_SECTIONS):
             pipe((csx, csy, ring_z), (FX+math.cos(rang)*LR*0.6, FY+math.sin(rang)*LR*0.6, ring_z),
                  r=CAGE_BAR_R*0.8, m=MS, seg=6,
                  name="Brkt_{}_{}_{}".format(sec_idx, int(ring_z), ra))
+    # Гарантируем кольцо на самом верху (z1) — если ещё не создано
+    if z0 + (n_rings - 1) * 1.5 < z1 - 0.01:
+        torus((ox, oy, z1), CAGE_R - LR, CAGE_BAR_R,
+              name="CageR_{}_{}".format(sec_idx, int(z1)), m=MS, seg=36, rseg=12)
+        for ra in [90, 270]:
+            rang = math.radians(az_deg + ra)
+            csx = ox + math.cos(rang) * (CAGE_R - LR)
+            csy = oy + math.sin(rang) * (CAGE_R - LR)
+            pipe((csx, csy, z1), (FX+math.cos(rang)*LR*0.6, FY+math.sin(rang)*LR*0.6, z1),
+                 r=CAGE_BAR_R*0.8, m=MS, seg=6,
+                 name="Brkt_{}_{}_top".format(sec_idx, int(z1), ra))
 
 # ═══════ 4. ОТТЯЖКИ — НА КРАСНЫХ СЕКЦИЯХ, АНКЕРЫ 1.4×1.4×0.8м ═══════
 GH = [10.0, 20.0, 34.0]
