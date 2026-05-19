@@ -153,9 +153,9 @@ def joint(loc, pipe_r, v_in, v_out, name="J", m=MS):
     bm.free()
     sm(obj=obj, m=m)
 
-    # Входной порт на (R,0,0) с нормалью −X → X_local = -v_in, позиция = loc − R·v_in
-    # Выходной порт на (0,0,R) с нормалью −Z → Z_local = +v_out, позиция = loc + R·v_out
-    mx = -v_in
+    # Входной порт (X): outward normal (1,0,0) → X_local = v_in, центр loc + R·v_in
+    # Выходной порт (Z): outward normal (0,0,1) → Z_local = v_out, центр loc + R·v_out
+    mx = v_in
     mz = v_out
     my = mz.cross(mx)
     if my.length < 1e-6:
