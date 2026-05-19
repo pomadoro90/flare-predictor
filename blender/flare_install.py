@@ -145,6 +145,7 @@ cyl((FX, FY, 0.25), 1.35, 0.5, name="Stack_Base", m=MS, seg=30)
 
 # ═══════ 2. ПЛАТФОРМЫ — только на стыках секций + верхняя ═══════
 PR, RH, POST_R = 2.0, 0.05, 0.045
+LR = R + 0.25           # радиус лестницы (нужен для отверстий в платформах)
 # Платформы: стык красный-белый (12м), стык белый-красный (28м), верхняя (37м)
 for pz, pname in [(12.0, "Joint_LM"), (28.0, "Joint_MU"), (37.0, "Top")]:
     cyl((FX, FY, pz), PR, 0.12, name="{}_D".format(pname), m=MS, seg=48)
@@ -155,6 +156,24 @@ for pz, pname in [(12.0, "Joint_LM"), (28.0, "Joint_MU"), (37.0, "Top")]:
         sx = FX + math.cos(ang) * (PR - 0.22)
         sy = FY + math.sin(ang) * (PR - 0.22)
         cyl((sx, sy, pz+0.75), POST_R, 1.3, name="{}_P{}".format(pname, a), m=MS, seg=6)
+
+# ── Отверстия (люки) в платформах над лестницей ──
+for pz, pname, az_deg in [(12.0, "Joint_LM", 0), (28.0, "Joint_MU", 90), (37.0, "Top", 0)]:
+    az = math.radians(az_deg)
+    hx = FX + math.cos(az) * LR
+    hy = FY + math.sin(az) * LR
+    hw, hd, hh = 0.60, 0.65, 0.18
+    bpy.ops.mesh.primitive_cube_add(
+        location=(hx, hy, pz),
+        scale=(hd/2, hw/2, hh/2))
+    cutter = bpy.context.active_object; cutter.name = "{}_Hole".format(pname)
+    cutter.rotation_euler = (0, 0, az)
+    disc = bpy.data.objects["{}_D".format(pname)]
+    bpy.context.view_layer.objects.active = disc
+    mod = disc.modifiers.new(name="Hole", type='BOOLEAN')
+    mod.object = cutter; mod.operation = 'DIFFERENCE'
+    bpy.ops.object.modifier_apply(modifier=mod.name)
+    bpy.data.objects.remove(cutter, do_unlink=True)
 
 # ═══════ 3. ЛЕСТНИЦА: Н-образная, только на красных секциях, у ствола ═══════
 LR = R + 0.25          # радиус — прямо у ствола
