@@ -298,10 +298,33 @@ for da in [60, 180, 300]:
     sm(obj=so, m=mat("PilotFlame", (0.95, 0.65, 0.20)))
     bpy.ops.object.shade_smooth()
 
-# ГАЗОВЫЙ КОЛЛЕКТОР — прямая линия от эстакады к вершине
-# Труба сбросного газа идёт к основанию горелки
-pipe((FX+0.7, FY, 5.5), (FX+0.7, FY, BZ), r=0.13, m=MY, seg=14, name="GasCollector_1")
-pipe((FX+0.7, FY, BZ), (FX, FY, BZ), r=0.13, m=MY, seg=14, name="GasCollector_2")
+# ГАЗОВЫЙ КОЛЛЕКТОР — поднимается вдоль ствола до верха, входит в ствол
+# Основной газовый стояк: от эстакады до уровня верха ствола, затем вход в ствол
+GAS_R = 0.13
+GAS_AZ = math.radians(45)  # азимут газового стояка (справа-спереди)
+GAS_RR = R + 0.25           # отступ от центра ствола
+GX0 = FX + math.cos(GAS_AZ) * GAS_RR
+GY0 = FY + math.sin(GAS_AZ) * GAS_RR
+
+# Вертикальный стояк газа (красный/белый/красный как ствол)
+pipe((GX0, GY0, 0.5),  (GX0, GY0, 12.0), r=GAS_R, m=MR, seg=14, name="GasRise_L")
+pipe((GX0, GY0, 12.0), (GX0, GY0, 28.0), r=GAS_R, m=MW, seg=14, name="GasRise_M")
+pipe((GX0, GY0, 28.0), (GX0, GY0, H),    r=GAS_R, m=MR, seg=14, name="GasRise_U")
+# Горизонтальный вход в ствол на уровне верха
+pipe((GX0, GY0, H), (FX, FY, H), r=GAS_R*0.85, m=MY, seg=14, name="GasInlet")
+joint((FX, FY, H), GAS_R*0.85, name="GasInlet_J", m=MS)
+
+# Подводка к дежурным горелкам — тонкие трубки от газового стояка
+for da in [60, 180, 300]:
+    dang = math.radians(da)
+    dpx = FX + math.cos(dang) * 0.60
+    dpy = FY + math.sin(dang) * 0.60
+    # Трубка от стояка к корпусу дежурной горелки (огибает ствол)
+    mid_x = FX + math.cos(dang) * 0.65
+    mid_y = FY + math.sin(dang) * 0.65
+    pipe((FX+math.cos(dang)*R, FY+math.sin(dang)*R, BZ+2.0),
+         (mid_x, mid_y, BZ+2.0), r=0.015, m=MS, seg=8,
+         name="PilotGas_{}".format(da))
 
 # ПАР: внешний стояк вдоль ствола, посекционная окраска как у ствола, крепления-хомуты
 # Стояк сзади-слева (азимут ~220°), от земли до уровня парового кольца
