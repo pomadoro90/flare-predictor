@@ -119,64 +119,25 @@ def pipe(p1, p2, r=0.04, m=MS, seg=12, name="P"):
     return c
 
 def joint(loc, pipe_r, v_in, v_out, name="J", m=MS):
-    """Четверть тороидального колена (90°), порты +X и +Z наружу.
-    Поворот: ось Z → v_out, ось X → v_in — как у pipe(), через track_quat."""
-    import bmesh
+    """DEBUG: два цилиндра-порта в позициях стыков. Потом заменим на elbow."""
     R = pipe_r * 1.5
-    r = pipe_r
-
-    mesh = bpy.data.meshes.new(name)
-    obj = bpy.data.objects.new(name, mesh)
-    bpy.context.collection.objects.link(obj)
-
-    bm = bmesh.new()
-    u_seg, v_seg = 10, 8
-    rings = []
-    for i in range(u_seg + 1):
-        u = (i / u_seg) * (math.pi / 2)
-        ring = []
-        for j in range(v_seg):
-            v = (j / v_seg) * 2 * math.pi
-            # Порт +X: (R,0,0), порт +Z: (0,0,R) — отзеркалено для наружных нормалей
-            x = (R + r * math.cos(v)) * math.sin(u)   # было cos(u) → sin(u): порт в +X при u=π/2
-            y = r * math.sin(v)
-            z = (R + r * math.cos(v)) * math.cos(u)   # было sin(u) → cos(u): порт в +Z при u=0
-            ring.append(bm.verts.new((x, y, z)))
-        rings.append(ring)
-    bm.verts.ensure_lookup_table()
-    for i in range(u_seg):
-        for j in range(v_seg):
-            jn = (j + 1) % v_seg
-            bm.faces.new((rings[i][j], rings[i][jn], rings[i+1][jn], rings[i+1][j]))
-    bm.to_mesh(mesh)
-    bm.free()
-    sm(obj=obj, m=m)
-
-    # Центр колена = точка поворота; поворот как у pipe: Z → v_out, X → v_in
-    obj.location = loc
-    direction = v_out
-    obj.rotation_euler = direction.to_track_quat('Z', 'X').to_euler()
-    bpy.ops.object.shade_smooth()
-    return obj
+    # Входной порт: loc - R·v_in, смотрит по v_in
+    c_in = loc - R * v_in
+    p_in = cyl(c_in, pipe_r, 0.06, name=name + "_IN", m=m, seg=16)
+    p_in.rotation_euler = v_in.to_track_quat('Z', 'Y').to_euler()
+    # Выходной порт: loc + R·v_out, смотрит по v_out
+    c_out = loc + R * v_out
+    p_out = cyl(c_out, pipe_r, 0.06, name=name + "_OUT", m=m, seg=16)
+    p_out.rotation_euler = v_out.to_track_quat('Z', 'Y').to_euler()
+    return p_in
 
 def route(points, r, m=MS, seg=12, name="R", joint_m=MS):
-    """Прокладывает трубу по ломаной с коленами (четвертной изгиб) во всех вершинах."""
+    """Прокладывает трубу по ломаной с коленами во всех вершинах."""
     for i in range(len(points)-1):
-        p0 = Vector(points[i])
-        p1 = Vector(points[i+1])
-        # Труба укорочена на R (радиус изгиба), чтобы освободить место под колено
-        R = r * 1.5
-        v_dir = (p1 - p0).normalized()
-        seg_len = (p1 - p0).length
-        if seg_len < 2 * R:
-            # Слишком короткий сегмент — труба без укорочения
-            pipe(p0, p1, r=r, m=m, seg=seg, name="{}_{}".format(name, i))
-        else:
-            pipe(p0 + v_dir * R, p1 - v_dir * R, r=r, m=m, seg=seg, name="{}_{}".format(name, i))
+        pipe(points[i], points[i+1], r=r, m=m, seg=seg, name="{}_{}".format(name, i))
         if i > 0:
-            # Колено в точке поворота: направления от предыдущего сегмента и к следующему
             v_in = (Vector(points[i-1]) - Vector(points[i])).normalized()
-            v_out = (p1 - Vector(points[i])).normalized()
+            v_out = (Vector(points[i+1]) - Vector(points[i])).normalized()
             joint(Vector(points[i]), r, v_in, v_out,
                   name="{}_J{}".format(name, i), m=joint_m)
 
