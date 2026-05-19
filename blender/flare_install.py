@@ -157,17 +157,16 @@ for pz, pname in [(12.0, "Joint_LM"), (28.0, "Joint_MU"), (37.0, "Top")]:
         sy = FY + math.sin(ang) * (PR - 0.22)
         cyl((sx, sy, pz+0.75), POST_R, 1.3, name="{}_P{}".format(pname, a), m=MS, seg=6)
 
-# ── Отверстия (люки) в платформах над лестницей ──
+# ── Отверстия (круглые люки) в платформах над лестницей ──
+HATCH_R = 0.35  # радиус круглого люка (достаточно для прохода человека)
 for pz, pname, az_deg in [(12.0, "Joint_LM", 0), (28.0, "Joint_MU", 90), (37.0, "Top", 0)]:
     az = math.radians(az_deg)
     hx = FX + math.cos(az) * LR
     hy = FY + math.sin(az) * LR
-    hw, hd, hh = 0.60, 0.65, 0.18
-    bpy.ops.mesh.primitive_cube_add(
-        location=(hx, hy, pz),
-        scale=(hd/2, hw/2, hh/2))
+    bpy.ops.mesh.primitive_cylinder_add(
+        vertices=32, radius=HATCH_R, depth=0.20,
+        location=(hx, hy, pz))
     cutter = bpy.context.active_object; cutter.name = "{}_Hole".format(pname)
-    cutter.rotation_euler = (0, 0, az)
     disc = bpy.data.objects["{}_D".format(pname)]
     bpy.context.view_layer.objects.active = disc
     mod = disc.modifiers.new(name="Hole", type='BOOLEAN')
@@ -217,19 +216,26 @@ for sec_idx, (z0, z1, az_deg) in enumerate(LADDER_SECTIONS):
         pipe((lx, ly, z), (rx, ry, z), r=RAIL_R*0.7, m=MS, seg=6,
              name="Rung_{}_{}".format(sec_idx, si))
 
-    # Защитная клетка
+    # Защитная клетка — с вырезом спереди для входа
+    # Передние прутья (в секторе ±45° от азимута лестницы) НЕ создаём
+    # Нижнее кольцо (на уровне платформы/земли) тоже пропускаем — свободный проход
     cage_n = 8
     for ci in range(cage_n):
         ca = math.radians(ci * 360 / cage_n)
+        # Пропускаем передние прутья: разница углов с азимутом лестницы < 45°
+        if abs((ca - az + math.pi) % (2*math.pi) - math.pi) < math.radians(50):
+            continue
         cx = ox + math.cos(ca) * (CAGE_R - LR)
         cy = oy + math.sin(ca) * (CAGE_R - LR)
-        pipe((cx, cy, z0), (cx, cy, z1), r=CAGE_BAR_R, m=MS, seg=6,
+        pipe((cx, cy, z0 + 0.25), (cx, cy, z1), r=CAGE_BAR_R, m=MS, seg=6,
              name="CageV_{}_{}".format(sec_idx, ci))
 
     # Кольца клетки + радиальные распорки к стволу
+    # Нижнее кольцо (z0) пропускаем — свободный вход
     n_rings = int((z1 - z0) / 1.5) + 1
+    ring_z0_offset = 0.8  # первое кольцо на высоте z0+0.8м от пола платформы/земли
     for ri in range(n_rings):
-        ring_z = z0 + ri * 1.5
+        ring_z = z0 + ring_z0_offset + ri * 1.5
         if ring_z > z1: ring_z = z1
         torus((ox, oy, ring_z), CAGE_R - LR, CAGE_BAR_R,
               name="CageR_{}_{}".format(sec_idx, int(ring_z)), m=MS, seg=36, rseg=12)
