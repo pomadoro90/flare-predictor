@@ -155,7 +155,8 @@ for pz, pname in [(12.0, "Joint_LM"), (28.0, "Joint_MU"), (37.0, "Top")]:
         ang = math.radians(a)
         sx = FX + math.cos(ang) * (PR - 0.22)
         sy = FY + math.sin(ang) * (PR - 0.22)
-        cyl((sx, sy, pz+0.75), POST_R, 1.3, name="{}_P{}".format(pname, a), m=MS, seg=6)
+        # Стойка: от диска (pz+0.06) до верхнего поручня (pz+1.30)
+        cyl((sx, sy, pz+0.06), POST_R, 1.24, name="{}_P{}".format(pname, a), m=MS, seg=6)
 
 # ── Отверстия (круглые люки) в платформах над лестницей ──
 HATCH_R = 0.35  # радиус круглого люка (достаточно для прохода человека)
@@ -320,8 +321,9 @@ pipe((SX0, SY0, SS_Z), (SX0, -7.0, SS_Z), r=STEAM_PIPE_R*0.7, m=MS, seg=12, name
 joint((SX0, SY0, SS_Z), STEAM_PIPE_R*0.7, name="SteamFeed_J", m=MS)
 
 # Крепления-хомуты каждые 2 метра (torus вокруг стояка + стержень к стволу)
+# Начинаем от SS_Z (низ стояка), а не от земли
 CLAMP_R = STEAM_PIPE_R * 1.5
-for cz in [z/10.0 for z in range(20, int(STEAM_Z*10), 20)]:  # каждые 2.0м
+for cz in [z/10.0 for z in range(int(SS_Z*10), int(STEAM_Z*10), 20)]:  # каждые 2.0м
     # Хомут — torus вокруг стояка
     torus((SX0, SY0, cz), CLAMP_R, 0.012, name="SCL_T_{}".format(int(cz*10)), m=MS, seg=24, rseg=12)
     # Стержень от хомута к стволу
