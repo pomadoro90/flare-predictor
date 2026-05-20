@@ -195,8 +195,10 @@ def elbow(loc, v_in, v_out, pipe_r, name="Elbow", m=MS, seg=24):
 
     return obj, tuple(port_in), tuple(port_out)
 
-def route(points, r, m=MS, seg=12, name="R", joint_m=MS):
+def route(points, r, m=MS, seg=12, name="R", joint_m=None):
     """Прокладывает трубу по ломаной с elbow-коленами в вершинах поворота."""
+    if joint_m is None:
+        joint_m = m
     n = len(points)
     if n < 2:
         return
@@ -558,7 +560,7 @@ route([
     (SX+2.0, RY,  FLARE_Z),         # 2: вертикально вниз на уровень эстакады
     (FX,     RY,  FLARE_Z),         # 3: горизонтально до X=ствола
     (FX,     FY,  FLARE_Z),         # 4: к стволу по Y
-], r=0.13, m=MY, seg=14, name="FlareGas", joint_m=MS)
+], r=0.13, m=MY, seg=14, name="FlareGas")
 
 # ПРОДУВОЧНЫЙ ГАЗ (Purge): подаётся через внутренний стояк, отдельная наружная труба не нужна
 
