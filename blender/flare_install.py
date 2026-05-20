@@ -132,7 +132,7 @@ def joint(loc, pipe_r, v_in, v_out, name="J", m=MS):
     return p_in
 
 def elbow(loc, v_in, v_out, pipe_r, name="Elbow", m=MS, seg=24):
-    """Четверть тора (90° изгиб) + фланцы. Вход по v_in, выход по v_out."""
+    """Четверть тора (90° изгиб). Вход по v_in, выход по v_out."""
     import bmesh
     loc_v = Vector(loc)
     v_in = Vector(v_in).normalized()
@@ -154,14 +154,11 @@ def elbow(loc, v_in, v_out, pipe_r, name="Elbow", m=MS, seg=24):
         u = (i / seg) * math.pi / 2
         cx = Re * (1 - math.cos(u))
         cz = Re * math.sin(u) - Re
-        # Касательная в точке дуги: (Re*sin u, 0, Re*cos u)
         tx = math.sin(u)
         tz = math.cos(u)
-        # Базис круга: нормаль=касательная, Y-ось остаётся Y
         ring = []
         for j in range(seg):
             v = (j / seg) * 2 * math.pi
-            # Точка на окружности радиуса rt в плоскости, перпендикулярной касательной
             x = cx + rt * math.cos(v) * tz
             y = rt * math.sin(v)
             z = cz - rt * math.cos(v) * tx
@@ -174,7 +171,6 @@ def elbow(loc, v_in, v_out, pipe_r, name="Elbow", m=MS, seg=24):
             bm.faces.new((rings[i][j], rings[i][jn], rings[i+1][jn], rings[i+1][j]))
     bm.to_mesh(mesh)
     bm.free()
-    bpy.ops.object.shade_smooth()
 
     # --- матрица: локальная +Z→v_in, локальная +X→v_out ---
     mz = v_in
@@ -183,28 +179,18 @@ def elbow(loc, v_in, v_out, pipe_r, name="Elbow", m=MS, seg=24):
     if my.length < 1e-6:
         my = Vector((0, 1, 0))
     my.normalize()
-    mz = mx.cross(my)   # ортогонализируем
+    mz = mx.cross(my)
     mz.normalize()
     M = Matrix((mx, my, mz)).to_4x4()
     obj.matrix_world = Matrix.Translation(loc_v) @ M
 
     # --- порты в мировых координатах ---
-    port_in  = loc_v + M @ Vector((0, 0, -Re))   # лок. (0,0,-Re) → мир
-    port_out = loc_v + M @ Vector((Re, 0, 0))     # лок. (Re,0,0) → мир
+    port_in  = loc_v + M @ Vector((0, 0, -Re))
+    port_out = loc_v + M @ Vector((Re, 0, 0))
 
     sm(obj=obj, m=m)
+    bpy.ops.object.shade_smooth()
 
-    # --- фланцы ---
-    fr = pipe_r * 1.35      # радиус фланца
-    fd = pipe_r * 0.25      # толщина
-    # входной фланец (ось по v_in, центр в port_in)
-    fi = cyl(tuple(port_in + v_in * fd/2), fr, fd, name=name+"_Fin", m=m, seg=24)
-    fi.rotation_euler = v_in.to_track_quat('Z', 'Y').to_euler()
-    # выходной фланец (ось по v_out, центр в port_out)
-    fo = cyl(tuple(port_out - v_out * fd/2), fr, fd, name=name+"_Fout", m=m, seg=24)
-    fo.rotation_euler = v_out.to_track_quat('Z', 'Y').to_euler()
-
-    bpy.context.view_layer.objects.active = obj
     return obj, tuple(port_in), tuple(port_out)
 
 def route(points, r, m=MS, seg=12, name="R", joint_m=MS):
