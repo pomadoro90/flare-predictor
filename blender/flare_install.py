@@ -171,6 +171,9 @@ def elbow(loc, v_in, v_out, pipe_r, name="Elbow", m=MS, seg=24):
             bm.faces.new((rings[i][j], rings[i][jn], rings[i+1][jn], rings[i+1][j]))
     bm.to_mesh(mesh)
     bm.free()
+    # Сглаживание: выставляем use_smooth на всех гранях напрямую
+    for p in mesh.polygons:
+        p.use_smooth = True
 
     # --- матрица: локальная +Z→v_in, локальная +X→v_out ---
     mz = v_in
@@ -189,7 +192,6 @@ def elbow(loc, v_in, v_out, pipe_r, name="Elbow", m=MS, seg=24):
     port_out = loc_v + M @ Vector((Re, 0, 0))
 
     sm(obj=obj, m=m)
-    bpy.ops.object.shade_smooth()
 
     return obj, tuple(port_in), tuple(port_out)
 
@@ -210,8 +212,8 @@ def route(points, r, m=MS, seg=12, name="R", joint_m=MS):
             continue  # прямой участок — без колена
         # колено в точке поворота
         _, port_in, port_out = elbow(
-            p_pivot, v_in, v_out, r,
-            name="{}_{}".format(name, pivot_idx), m=joint_m)
+            p_pivot, v_in, v_out, r, seg=24,
+            name="{}_E{}".format(name, pivot_idx), m=joint_m)
         # труба от предыдущего старта до входного порта колена
         if (current_start - Vector(port_in)).length > 0.001:
             pipe(tuple(current_start), port_in, r=r, m=m, seg=seg,
