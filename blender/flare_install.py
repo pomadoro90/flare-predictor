@@ -1,6 +1,6 @@
 """
 ФАКЕЛЬНАЯ УСТАНОВКА НПЗ — low-poly модель для курсовой работы.
-Версия: v14 | Полигонов: ~24K | Blender 5.1.1 | Рендер: EEVEE/Workbench
+Версия: v29 | Полигонов: ~25K | Blender 5.1.1 | Рендер: EEVEE/Workbench
 
 ═══════════════════════════════════════════════════════════
                     АННОТАЦИЯ ОБЪЕКТОВ
@@ -131,15 +131,111 @@ def joint(loc, pipe_r, v_in, v_out, name="J", m=MS):
     p_out.rotation_euler = v_out.to_track_quat('Z', 'Y').to_euler()
     return p_in
 
+def elbow(loc, v_in, v_out, pipe_r, name="Elbow", m=MS, seg=24):
+    """Четверть тора (90° изгиб) + фланцы. Вход по v_in, выход по v_out."""
+    import bmesh
+    loc_v = Vector(loc)
+    v_in = Vector(v_in).normalized()
+    v_out = Vector(v_out).normalized()
+
+    Re = pipe_r * 1.5      # радиус изгиба по центральной линии
+    rt = pipe_r             # радиус трубы
+
+    # --- локальная геометрия четверти тора ---
+    # Дуга: старт (0,0,-Re) касат. +Z → конец (Re,0,0) касат. +X
+    # Параметризация: x=Re*(1-cos u), z=Re*sin u - Re, u∈[0,π/2]
+    mesh = bpy.data.meshes.new(name)
+    obj = bpy.data.objects.new(name, mesh)
+    bpy.context.collection.objects.link(obj)
+
+    bm = bmesh.new()
+    rings = []
+    for i in range(seg + 1):
+        u = (i / seg) * math.pi / 2
+        cx = Re * (1 - math.cos(u))
+        cz = Re * math.sin(u) - Re
+        # Касательная в точке дуги: (Re*sin u, 0, Re*cos u)
+        tx = math.sin(u)
+        tz = math.cos(u)
+        # Базис круга: нормаль=касательная, Y-ось остаётся Y
+        ring = []
+        for j in range(seg):
+            v = (j / seg) * 2 * math.pi
+            # Точка на окружности радиуса rt в плоскости, перпендикулярной касательной
+            x = cx + rt * math.cos(v) * tz
+            y = rt * math.sin(v)
+            z = cz - rt * math.cos(v) * tx
+            ring.append(bm.verts.new((x, y, z)))
+        rings.append(ring)
+    bm.verts.ensure_lookup_table()
+    for i in range(seg):
+        for j in range(seg):
+            jn = (j + 1) % seg
+            bm.faces.new((rings[i][j], rings[i][jn], rings[i+1][jn], rings[i+1][j]))
+    bm.to_mesh(mesh)
+    bm.free()
+    bpy.ops.object.shade_smooth()
+
+    # --- матрица: локальная +Z→v_in, локальная +X→v_out ---
+    mz = v_in
+    mx = v_out
+    my = mz.cross(mx)
+    if my.length < 1e-6:
+        my = Vector((0, 1, 0))
+    my.normalize()
+    mz = mx.cross(my)   # ортогонализируем
+    mz.normalize()
+    M = Matrix((mx, my, mz)).to_4x4()
+    obj.matrix_world = Matrix.Translation(loc_v) @ M
+
+    # --- порты в мировых координатах ---
+    port_in  = loc_v + M @ Vector((0, 0, -Re))   # лок. (0,0,-Re) → мир
+    port_out = loc_v + M @ Vector((Re, 0, 0))     # лок. (Re,0,0) → мир
+
+    sm(obj=obj, m=m)
+
+    # --- фланцы ---
+    fr = pipe_r * 1.35      # радиус фланца
+    fd = pipe_r * 0.25      # толщина
+    # входной фланец (ось по v_in, центр в port_in)
+    fi = cyl(tuple(port_in + v_in * fd/2), fr, fd, name=name+"_Fin", m=m, seg=24)
+    fi.rotation_euler = v_in.to_track_quat('Z', 'Y').to_euler()
+    # выходной фланец (ось по v_out, центр в port_out)
+    fo = cyl(tuple(port_out - v_out * fd/2), fr, fd, name=name+"_Fout", m=m, seg=24)
+    fo.rotation_euler = v_out.to_track_quat('Z', 'Y').to_euler()
+
+    bpy.context.view_layer.objects.active = obj
+    return obj, tuple(port_in), tuple(port_out)
+
 def route(points, r, m=MS, seg=12, name="R", joint_m=MS):
-    """Прокладывает трубу по ломаной с коленами во всех вершинах."""
-    for i in range(len(points)-1):
-        pipe(points[i], points[i+1], r=r, m=m, seg=seg, name="{}_{}".format(name, i))
-        if i > 0:
-            v_in = (Vector(points[i-1]) - Vector(points[i])).normalized()
-            v_out = (Vector(points[i+1]) - Vector(points[i])).normalized()
-            joint(Vector(points[i]), r, v_in, v_out,
-                  name="{}_J{}".format(name, i), m=joint_m)
+    """Прокладывает трубу по ломаной с elbow-коленами в вершинах поворота."""
+    n = len(points)
+    if n < 2:
+        return
+    current_start = Vector(points[0])
+    seg_idx = 0
+    for pivot_idx in range(1, n - 1):
+        p_prev  = Vector(points[pivot_idx - 1])
+        p_pivot = Vector(points[pivot_idx])
+        p_next  = Vector(points[pivot_idx + 1])
+        v_in  = (p_pivot - p_prev).normalized()
+        v_out = (p_next - p_pivot).normalized()
+        if abs(v_in.dot(v_out)) > 0.999:
+            continue  # прямой участок — без колена
+        # колено в точке поворота
+        _, port_in, port_out = elbow(
+            p_pivot, v_in, v_out, r,
+            name="{}_{}".format(name, pivot_idx), m=joint_m)
+        # труба от предыдущего старта до входного порта колена
+        if (current_start - Vector(port_in)).length > 0.001:
+            pipe(tuple(current_start), port_in, r=r, m=m, seg=seg,
+                 name="{}_{}".format(name, seg_idx))
+            seg_idx += 1
+        current_start = Vector(port_out)
+    # последний прямой сегмент
+    if (current_start - Vector(points[-1])).length > 0.001:
+        pipe(tuple(current_start), points[-1], r=r, m=m, seg=seg,
+             name="{}_{}".format(name, seg_idx))
 
 # ═══════ ЗЕМЛЯ + ПЛОЩАДКА ═══════
 # Земля ниже, площадка толще и выше — чтобы не было наложения
