@@ -484,34 +484,14 @@ temp_sensor((FX, FY+1.2, 30.0), "TS_Tflame")
 pressure_sensor((FX, FY-1.2, 30.0), "PS_SteamQ")
 
 # ═══════ 7. СЕПАРАТОР ═══════
+# Подробная модель: эллиптические днища, седловидные опоры, площадка с ограждениями,
+# лестница с клеткой, патрубки с фланцами, люк, уровнемер, манометр, предупреждающие полосы
+# Координаты (используются также в секциях 9, 9a, 9c):
 SX, SY, SZ, SL, SR = -7.0, -4.5, 1.6, 7.5, 1.4
-for sx in [SX-2.5, SX+2.5]:
-    cube((sx, SY, 0.3), (0.45, 0.9, 0.3), name="Sep_Ft", m=MN)
-    cyl((sx, SY, 0.75), 0.20, 0.7, name="Sep_Saddle", m=MS, seg=14)
-sb = cyl((SX, SY, SZ), SR, SL, name="Sep_Body", m=MW, seg=30)
-sb.rotation_euler = (0, math.radians(90), 0)
-# ── заглушки-диски вместо сфер ──
-for dx in [-SL/2, SL/2]:
-    cyl((SX+dx, SY, SZ), SR, 0.10, rot=(0, math.radians(90), 0), name="Sep_Cap", m=MS, seg=30)
-cyl((SX-2.0, SY, SZ+SR+0.3), 0.16, 0.5, name="Sep_In", m=MS, seg=14)
-cyl((SX+2.0, SY, SZ+SR+0.3), 0.13, 0.4, name="Sep_Vent", m=MS, seg=14)
-cyl((SX+0.8, SY, SZ-SR-0.4), 0.11, 0.6, name="Sep_Drain", m=MS, seg=14)
-LX, LY = SX - SL/2 - 0.9, SY - 0.5
-for si in range(9):
-    cube((LX, LY, 0.5+si*0.50), (0.28, 0.02, 0.02), name="SepL{}".format(si), m=MS)
-for dx_s, dy_s in [(-0.22, -0.15), (0.22, -0.15), (-0.22, 0.15), (0.22, 0.15)]:
-    cyl((LX+dx_s, LY+dy_s, 2.5), 0.028, 4.5, name="SepCage", m=MS, seg=6)
-
-# ── без сфер на сепараторе ──
-
-# Уровнемер на сепараторе (вертикальная трубка сбоку)
-pipe((SX-3.0, SY+1.0, 0.8), (SX-3.0, SY+1.0, SZ+SR+0.2), r=0.03, m=MS, seg=8, name="Sep_LG")
-for lz in [1.2, 2.0, 2.8]:
-    cyl((SX-3.0, SY+1.0, lz), 0.05, 0.04, name="Sep_LGFlg", m=MM, seg=10)
-
-# Манометр на сепараторе (сверху на корпусе)
-cyl((SX-1.0, SY+0.8, SZ+SR+0.5), 0.04, 0.06, name="Sep_PG_Body", m=MY, seg=12)
-cyl((SX-1.0, SY+0.8, SZ+SR+0.56), 0.06, 0.02, name="Sep_PG_Face", m=MW, seg=16)
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from separator_new import create_separator
+create_separator(bpy, math, MW, MS, MY, MM, MN, MR)
 
 # ═══════ 8. ДРЕНАЖ ═══════
 DX, DY = -11.5, -5.0
