@@ -287,20 +287,24 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
     plat_thick = 0.06
     rail_h = 0.90                # railing height
 
+    # Ladder coordinates (needed for hole and cage alignment)
+    lad_x = SX + SL * 0.15              # ladder X center (stringers along X)
+    lad_y = SY + SR + 0.10              # ladder Y position (on cylinder surface)
+    lad_z_top = plat_z + 0.05           # platform level
+    lad_z_bot = GROUND_Z + 0.2          # above ground
+
     # Platform boundaries
     p_x_min = SX - plat_len / 2
     p_x_max = SX + plat_len / 2
     p_y_min = SY - plat_w / 2
     p_y_max = SY + plat_w / 2
 
-    # ═══════════════════════════════════════════════════════════
-    # Grating: cross-hatch mesh (pipes at 90°, no solid deck)
-    # Rectangular hole for ladder exit at hole_x, hole_y
-    # ═══════════════════════════════════════════════════════════
-    hole_w = 0.7
-    hole_d = 0.55
-    hole_x = SX + SL * 0.15           # aligned with ladder X
-    hole_y = SY + plat_w * 0.42       # near front edge where ladder is
+    # Hole for ladder exit — elongated along X (ladder rotated 90°, stringers along X)
+    # Ladder top is at (lad_x, lad_y) — hole center aligns with ladder position
+    hole_w = 0.50    # along X axis (longer — ladder stringers run along X)
+    hole_d = 0.35    # along Y axis (narrower — just enough to step through)
+    hole_x = lad_x                    # aligned with ladder X center
+    hole_y = lad_y                     # aligned with ladder Y position
 
     hx_min = hole_x - hole_w / 2
     hx_max = hole_x + hole_w / 2
@@ -473,10 +477,8 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
     # ═══════════════════════════════════════════════════════════
     # 5. LADDER (vertical, right side)
     # ═══════════════════════════════════════════════════════════
-    lad_x = SX + SL * 0.15              # aligned with platform ladder hole
-    lad_y = SY + SR + 0.10      # attached to cylinder surface, offset
-    lad_z_top = plat_z + 0.05   # platform level
-    lad_z_bot = GROUND_Z + 0.2  # above ground
+    # ── Ladder coordinates already defined above (section 4) ──
+    # lad_x, lad_y, lad_z_top, lad_z_bot are set in the platform section
 
     # Side rails (thin pipes) — rotated 90°: rails along X, rungs along X too
     rail_spacing = 0.35
@@ -502,6 +504,23 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
             (lad_x_l, lad_y, rz), (lad_x_r, lad_y, rz),
             radius=rung_r, material=MS, segs=6,
             name="Sep_Ladder_Rung_{}".format(ri))
+
+    # ── Exit step: connects ladder top to platform edge ──
+    # A horizontal step from ladder position to front edge of platform
+    exit_y = p_y_max   # front edge of platform
+    make_pipe(
+        (lad_x_l, lad_y, lad_z_top), (lad_x_l, exit_y, lad_z_top),
+        radius=rail_r_lad, material=MS, segs=6,
+        name="Sep_Ladder_ExitL")
+    make_pipe(
+        (lad_x_r, lad_y, lad_z_top), (lad_x_r, exit_y, lad_z_top),
+        radius=rail_r_lad, material=MS, segs=6,
+        name="Sep_Ladder_ExitR")
+    # Exit rung (cross-bar at top)
+    make_pipe(
+        (lad_x_l, exit_y, lad_z_top), (lad_x_r, exit_y, lad_z_top),
+        radius=rung_r, material=MS, segs=6,
+        name="Sep_Ladder_ExitRung")
 
     # ── Ladder safety cage (full height, 4 vertical bars, semicircular rings every 0.4m) ──
     # Cage wraps around the front half of the ladder, rotated 90°: arches in X-Z plane
