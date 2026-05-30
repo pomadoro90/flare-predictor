@@ -478,55 +478,52 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
     lad_z_top = plat_z + 0.05   # platform level
     lad_z_bot = GROUND_Z + 0.2  # above ground
 
-    # Side rails (thin pipes)
+    # Side rails (thin pipes) — rotated 90°: rails along X, rungs along X too
     rail_spacing = 0.35
     rail_r_lad = 0.02
-    lad_y_l = lad_y - rail_spacing / 2
-    lad_y_r = lad_y + rail_spacing / 2
+    lad_x_l = lad_x - rail_spacing / 2   # left rail in X
+    lad_x_r = lad_x + rail_spacing / 2   # right rail in X
 
     make_pipe(
-        (lad_x, lad_y_l, lad_z_bot), (lad_x, lad_y_l, lad_z_top),
+        (lad_x_l, lad_y, lad_z_bot), (lad_x_l, lad_y, lad_z_top),
         radius=rail_r_lad, material=MS, segs=6,
         name="Sep_Ladder_Rail_L")
     make_pipe(
-        (lad_x, lad_y_r, lad_z_bot), (lad_x, lad_y_r, lad_z_top),
+        (lad_x_r, lad_y, lad_z_bot), (lad_x_r, lad_y, lad_z_top),
         radius=rail_r_lad, material=MS, segs=6,
         name="Sep_Ladder_Rail_R")
 
-    # Rungs at 0.3m intervals
+    # Rungs at 0.3m intervals — along X (connecting left and right rails)
     rung_r = 0.015
     n_rungs = int((lad_z_top - lad_z_bot) / 0.30)
     for ri in range(n_rungs):
         rz = lad_z_bot + (ri + 0.5) * (lad_z_top - lad_z_bot) / n_rungs
         make_pipe(
-            (lad_x, lad_y_l, rz), (lad_x, lad_y_r, rz),
+            (lad_x_l, lad_y, rz), (lad_x_r, lad_y, rz),
             radius=rung_r, material=MS, segs=6,
             name="Sep_Ladder_Rung_{}".format(ri))
 
     # ── Ladder safety cage (full height, 4 vertical bars, semicircular rings every 0.4m) ──
-    # Cage wraps around the front half of the ladder, like the flare stack reference
+    # Cage wraps around the front half of the ladder, rotated 90°: arches in X-Z plane
     cage_r = 0.28         # radius of the semicircular arch
     cage_bar_r = 0.014    # thickness of cage bars
     cage_start_z = lad_z_bot + 1.0   # start 1m above ground
     cage_end_z = lad_z_top - 0.15    # end near platform
-    n_cage_vert = 4       # number of vertical bars
 
     if cage_end_z > cage_start_z:
         # ── Vertical cage bars ──
-        # Fan out from ladder center: angles spread across front half (0° = behind, ±90° = sides)
-        # Ladder rails are at ±rail_spacing/2 in Y. Cage covers front (positive Y direction).
+        # Spread along X (perpendicular to cylinder axis Y)
         cage_angles = [-0.6, -0.2, 0.2, 0.6]  # radians from front center
         for ci, angle in enumerate(cage_angles):
-            cx = lad_x + math_mod.sin(angle) * cage_r * 0.4  # slight X splay
-            cy = lad_y + math_mod.cos(angle) * cage_r * 0.9   # major spread in Y (front)
+            cx = lad_x + math_mod.sin(angle) * cage_r * 0.9   # major spread in X
+            cy = lad_y + math_mod.cos(angle) * cage_r * 0.3    # slight Y splay
             make_pipe(
                 (cx, cy, cage_start_z), (cx, cy, cage_end_z),
                 radius=cage_bar_r, material=MS, segs=6,
                 name="Sep_Ladder_CageV_{}".format(ci))
 
         # ── Horizontal semicircular rings every 0.4m ──
-        # Each ring is a semicircle arching over the front of the ladder
-        # Modeled as a series of short straight pipes forming an arc
+        # Arcs in X-Z plane (rotated 90° from before)
         n_rings = int((cage_end_z - cage_start_z) / 0.40) + 1
         ring_segs = 8  # segments per semicircle
         for ri in range(n_rings):
@@ -534,15 +531,14 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
             if rz > cage_end_z:
                 break
             for si in range(ring_segs):
-                # Arc from -90° to +90° of front half
                 t1 = si / ring_segs
                 t2 = (si + 1) / ring_segs
                 angle1 = math_mod.pi * (t1 - 0.5)  # -90° to +90°
                 angle2 = math_mod.pi * (t2 - 0.5)
-                x1 = lad_x + math_mod.sin(angle1) * cage_r * 0.3
-                y1 = lad_y + math_mod.cos(angle1) * cage_r
-                x2 = lad_x + math_mod.sin(angle2) * cage_r * 0.3
-                y2 = lad_y + math_mod.cos(angle2) * cage_r
+                x1 = lad_x + math_mod.sin(angle1) * cage_r
+                y1 = lad_y + math_mod.cos(angle1) * cage_r * 0.3
+                x2 = lad_x + math_mod.sin(angle2) * cage_r
+                y2 = lad_y + math_mod.cos(angle2) * cage_r * 0.3
                 make_pipe(
                     (x1, y1, rz), (x2, y2, rz),
                     radius=cage_bar_r, material=MS, segs=4,
