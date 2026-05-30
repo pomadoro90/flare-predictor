@@ -505,25 +505,28 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
 
     # ── Ladder safety cage (full height, 4 vertical bars, semicircular rings every 0.4m) ──
     # Cage wraps around the front half of the ladder, rotated 90°: arches in X-Z plane
-    cage_r = 0.28         # radius of the semicircular arch
-    cage_bar_r = 0.014    # thickness of cage bars
+    # Cage offset forward (Y+) from ladder so there's clear space between ladder and cage
+    cage_offset_y = 0.25     # how far the cage center sits forward of the ladder
+    cage_r = 0.35            # radius of the semicircular arch (wider for clearance)
+    cage_bar_r = 0.014       # thickness of cage bars
     cage_start_z = lad_z_bot + 1.0   # start 1m above ground
     cage_end_z = lad_z_top - 0.15    # end near platform
+    cage_cy = lad_y + cage_offset_y  # center of cage arches, offset forward
 
     if cage_end_z > cage_start_z:
         # ── Vertical cage bars ──
-        # Spread along X (perpendicular to cylinder axis Y)
-        cage_angles = [-0.6, -0.2, 0.2, 0.6]  # radians from front center
+        # Spread along X (perpendicular to cylinder axis Y), offset forward
+        cage_angles = [-1.05, -0.35, 0.35, 1.05]  # wider spread in radians
         for ci, angle in enumerate(cage_angles):
-            cx = lad_x + math_mod.sin(angle) * cage_r * 0.9   # major spread in X
-            cy = lad_y + math_mod.cos(angle) * cage_r * 0.3    # slight Y splay
+            cx = lad_x + math_mod.sin(angle) * cage_r
+            cy = cage_cy + math_mod.cos(angle) * cage_r * 0.35  # depth in Y
             make_pipe(
                 (cx, cy, cage_start_z), (cx, cy, cage_end_z),
                 radius=cage_bar_r, material=MS, segs=6,
                 name="Sep_Ladder_CageV_{}".format(ci))
 
         # ── Horizontal semicircular rings every 0.4m ──
-        # Arcs in X-Z plane (rotated 90° from before)
+        # Arcs in X-Z plane (rotated 90°), center offset forward
         n_rings = int((cage_end_z - cage_start_z) / 0.40) + 1
         ring_segs = 8  # segments per semicircle
         for ri in range(n_rings):
@@ -536,9 +539,9 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
                 angle1 = math_mod.pi * (t1 - 0.5)  # -90° to +90°
                 angle2 = math_mod.pi * (t2 - 0.5)
                 x1 = lad_x + math_mod.sin(angle1) * cage_r
-                y1 = lad_y + math_mod.cos(angle1) * cage_r * 0.3
+                y1 = cage_cy + math_mod.cos(angle1) * cage_r * 0.35
                 x2 = lad_x + math_mod.sin(angle2) * cage_r
-                y2 = lad_y + math_mod.cos(angle2) * cage_r * 0.3
+                y2 = cage_cy + math_mod.cos(angle2) * cage_r * 0.35
                 make_pipe(
                     (x1, y1, rz), (x2, y2, rz),
                     radius=cage_bar_r, material=MS, segs=4,
