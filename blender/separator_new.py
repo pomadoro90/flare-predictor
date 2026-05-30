@@ -298,9 +298,9 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
     # Rectangular hole for ladder exit at hole_x, hole_y
     # ═══════════════════════════════════════════════════════════
     hole_w = 0.7
-    hole_d = 0.5
-    hole_x = SX + SL * 0.15           # aligned with ladder
-    hole_y = SY                        # centered on separator axis Y
+    hole_d = 0.55
+    hole_x = SX + SL * 0.15           # aligned with ladder X
+    hole_y = SY + plat_w * 0.42       # near front edge where ladder is
 
     hx_min = hole_x - hole_w / 2
     hx_max = hole_x + hole_w / 2
@@ -401,7 +401,7 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
     n_posts_x = max(2, int(round(plat_len / 0.9)) + 1)
     n_posts_y = max(2, int(round(plat_w / 0.9)) + 1)
 
-    # Access opening on right side (where ladder meets)
+    # Access opening on front edge (where ladder meets)
     opening_x = SX + SL * 0.15   # aligned with ladder hole
     opening_half = 0.35
 
@@ -410,8 +410,8 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
     for y_edge in [p_y_min, p_y_max]:
         for pi in range(n_posts_x):
             px = p_x_min + plat_len * pi / (n_posts_x - 1)
-            # Skip posts in the access opening area
-            if abs(px - opening_x) < opening_half:
+            # Skip posts on front edge in the access opening area
+            if y_edge == p_y_max and abs(px - opening_x) < opening_half:
                 continue
             make_cylinder(
                 (px, y_edge, plat_z + rail_h / 2),
@@ -420,13 +420,10 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
                 material=MS, segs=6)
             post_index += 1
 
-    # Posts along Y-edges (left and right) - skip right edge near opening
+    # Posts along Y-edges (left and right) - solid, no opening
     for x_edge in [p_x_min, p_x_max]:
         for pi in range(n_posts_y):
             py = p_y_min + plat_w * pi / (n_posts_y - 1)
-            # Skip posts on right edge where ladder is
-            if x_edge == p_x_max and abs(py - SY) < opening_half:
-                continue
             # Skip corner posts already created by X-edges
             if pi == 0 or pi == n_posts_y - 1:
                 continue
@@ -443,35 +440,35 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
     
     for rh_frac in rail_heights:
         rh = plat_z + rh_frac
-        # Front rail
+        # Front rail — with gap for ladder access opening
         make_pipe(
             (p_x_min + 0.05, p_y_max, rh),
+            (opening_x - opening_half, p_y_max, rh),
+            radius=rail_radius, material=MS, segs=6,
+            name="Sep_Plat_Rail_F1_{}".format(int(rh_frac * 100)))
+        make_pipe(
+            (opening_x + opening_half, p_y_max, rh),
             (p_x_max - 0.05, p_y_max, rh),
             radius=rail_radius, material=MS, segs=6,
-            name="Sep_Plat_Rail_F_{}".format(int(rh_frac * 100)))
-        # Back rail
+            name="Sep_Plat_Rail_F2_{}".format(int(rh_frac * 100)))
+        # Back rail (solid, no opening)
         make_pipe(
             (p_x_min + 0.05, p_y_min, rh),
             (p_x_max - 0.05, p_y_min, rh),
             radius=rail_radius, material=MS, segs=6,
             name="Sep_Plat_Rail_B_{}".format(int(rh_frac * 100)))
-        # Left rail (skipping opening area on right)
+        # Left rail (solid, no opening)
         make_pipe(
             (p_x_min, p_y_min + 0.05, rh),
             (p_x_min, p_y_max - 0.05, rh),
             radius=rail_radius, material=MS, segs=6,
             name="Sep_Plat_Rail_L_{}".format(int(rh_frac * 100)))
-        # Right rail (with gap for access opening)
+        # Right rail (solid, no opening)
         make_pipe(
             (p_x_max, p_y_min + 0.05, rh),
-            (p_x_max, SY - opening_half, rh),
-            radius=rail_radius, material=MS, segs=6,
-            name="Sep_Plat_Rail_R1_{}".format(int(rh_frac * 100)))
-        make_pipe(
-            (p_x_max, SY + opening_half, rh),
             (p_x_max, p_y_max - 0.05, rh),
             radius=rail_radius, material=MS, segs=6,
-            name="Sep_Plat_Rail_R2_{}".format(int(rh_frac * 100)))
+            name="Sep_Plat_Rail_R_{}".format(int(rh_frac * 100)))
 
     # ═══════════════════════════════════════════════════════════
     # 5. LADDER (vertical, right side)
