@@ -300,11 +300,12 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
     p_y_max = SY + plat_w / 2
 
     # Hole for ladder exit — elongated along X (ladder rotated 90°, stringers along X)
-    # Ladder top is at (lad_x, lad_y) — hole center aligns with ladder position
+    # Shift hole slightly inward so its front edge is ~0.15m inside platform front edge
+    # This ensures grating bars exist on all 4 sides of the hole
     hole_w = 0.50    # along X axis (longer — ladder stringers run along X)
     hole_d = 0.35    # along Y axis (narrower — just enough to step through)
-    hole_x = lad_x                    # aligned with ladder X center
-    hole_y = lad_y                     # aligned with ladder Y position
+    hole_x = lad_x                              # aligned with ladder X center
+    hole_y = lad_y - (lad_y - (p_y_max - 0.15)) # shift inward so hy_max ≈ p_y_max - 0.15
 
     hx_min = hole_x - hole_w / 2
     hx_max = hole_x + hole_w / 2
@@ -399,6 +400,31 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
             (x_edge, SY, plat_z + toe_h / 2),
             (toe_t / 2, plat_w / 2, toe_h / 2),
             name="Sep_Plat_Toe_{}".format(x_name), material=MS)
+
+    # ── Hole frame: thick pipes around the ladder opening ──
+    # This creates a visible rim that connects grating to the ladder exit
+    frame_r = 0.025  # pipe radius for the frame
+    frame_z = plat_z + bar_r  # same height as grating bars
+    # Front edge of hole (Y = hy_max)
+    make_pipe(
+        (hx_min, hy_max, frame_z), (hx_max, hy_max, frame_z),
+        radius=frame_r, material=MS, segs=6,
+        name="Sep_HoleFrame_Front")
+    # Back edge of hole (Y = hy_min)
+    make_pipe(
+        (hx_min, hy_min, frame_z), (hx_max, hy_min, frame_z),
+        radius=frame_r, material=MS, segs=6,
+        name="Sep_HoleFrame_Back")
+    # Left edge (X = hx_min)
+    make_pipe(
+        (hx_min, hy_min, frame_z), (hx_min, hy_max, frame_z),
+        radius=frame_r, material=MS, segs=6,
+        name="Sep_HoleFrame_Left")
+    # Right edge (X = hx_max)
+    make_pipe(
+        (hx_max, hy_min, frame_z), (hx_max, hy_max, frame_z),
+        radius=frame_r, material=MS, segs=6,
+        name="Sep_HoleFrame_Right")
 
     # ── Railing posts (thin cylinders at ~1m intervals) ──
     post_r = 0.025
