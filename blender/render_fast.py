@@ -50,7 +50,7 @@ sun.data.energy = 4.0
 s = bpy.context.scene
 s.render.engine = 'BLENDER_EEVEE'
 s.eevee.taa_render_samples = 16
-s.view_settings.exposure = 1.8
+s.view_settings.exposure = 1.2
 s.view_settings.gamma = 1.0
 s.render.resolution_x = 800
 s.render.resolution_y = 600
@@ -90,9 +90,9 @@ views = {
         'lens': 22,
     },
     'detail_ladder': {
-        'loc': (-5.9, -6.0, 3.2),
+        'loc': (-5.8, -5.5, 3.5),
         'tgt': (-5.9, -3.0, 2.8),
-        'lens': 35,
+        'lens': 30,
     },
 }
 

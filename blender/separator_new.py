@@ -290,7 +290,7 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
     # Ladder coordinates (needed for hole and cage alignment)
     lad_x = SX + SL * 0.15              # ladder X center (stringers along X)
     lad_y = SY + SR + 0.10              # ladder Y position (on cylinder surface)
-    lad_z_top = plat_z + 0.05           # platform level
+    lad_z_top = plat_z                  # top of ladder = platform level (flush with grating)
     lad_z_bot = GROUND_Z + 0.2          # above ground
 
     # Platform boundaries
@@ -532,7 +532,8 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
             name="Sep_Ladder_Rung_{}".format(ri))
 
     # ── Exit step: connects ladder top to platform edge ──
-    # A horizontal step from ladder position to front edge of platform
+    # Ladder top is flush with platform level (lad_z_top = plat_z)
+    # Horizontal rails from ladder to front edge of platform grating
     exit_y = p_y_max   # front edge of platform
     make_pipe(
         (lad_x_l, lad_y, lad_z_top), (lad_x_l, exit_y, lad_z_top),
@@ -542,11 +543,24 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
         (lad_x_r, lad_y, lad_z_top), (lad_x_r, exit_y, lad_z_top),
         radius=rail_r_lad, material=MS, segs=6,
         name="Sep_Ladder_ExitR")
-    # Exit rung (cross-bar at top)
+    # Exit rung (cross-bar at top, along X connecting the two rails at front edge)
     make_pipe(
         (lad_x_l, exit_y, lad_z_top), (lad_x_r, exit_y, lad_z_top),
         radius=rung_r, material=MS, segs=6,
         name="Sep_Ladder_ExitRung")
+    # Cross-bar at ladder top (along X, connecting the two rails at ladder position)
+    make_pipe(
+        (lad_x_l, lad_y, lad_z_top), (lad_x_r, lad_y, lad_z_top),
+        radius=rung_r, material=MS, segs=6,
+        name="Sep_Ladder_TopRung")
+    
+    # ── Handrails from platform railing to ladder top ──
+    # Diagonal pipes from railing height at front edge down to ladder top
+    for x_hr in [lad_x_l, lad_x_r]:
+        make_pipe(
+            (x_hr, exit_y, plat_z + rail_h), (x_hr, lad_y, lad_z_top + 0.15),
+            radius=0.02, material=MS, segs=6,
+            name="Sep_Ladder_Handrail_{}".format("L" if x_hr == lad_x_l else "R"))
 
     # ── Ladder safety cage (full height, 4 vertical bars, semicircular rings every 0.4m) ──
     # Cage wraps around the front half of the ladder, rotated 90°: arches in X-Z plane
