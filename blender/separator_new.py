@@ -293,14 +293,96 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
     p_y_min = SY - plat_w / 2
     p_y_max = SY + plat_w / 2
 
-    # ── Grating floor ──
-    # Use a flat box with slight transparency-like appearance (lighter color)
-    grating = make_box(
-        (SX, SY, plat_z + plat_thick / 2),
-        (plat_len / 2, plat_w / 2, plat_thick / 2),
-        name="Sep_Plat_Floor", material=MS)
-    # Make it lighter by using a copy with white material on top (subtle)
-    # Actually, just use the steel material - it looks fine
+    # ── Grating floor (parallel bars along Y axis) ──
+    # Ladder position for cutout
+    lad_x = SX + SL * 0.25
+    lad_y = SY + SR + 0.10
+
+    # Create platform deck with rectangular hole for ladder access
+    # Instead of Boolean DIFFERENCE, model the deck as 4 boxes around the hole
+    hole_w = 0.7
+    hole_d = 0.5
+    hole_x = SX + SL * 0.15           # closer to center of platform
+    hole_y = SY                        # centered on separator axis Y
+
+    hx_min = hole_x - hole_w / 2  # left edge of hole
+    hx_max = hole_x + hole_w / 2  # right edge of hole
+    hy_min = hole_y - hole_d / 2  # back edge of hole
+    hy_max = hole_y + hole_d / 2  # front edge of hole
+
+    deck_z = plat_z + plat_thick / 2
+
+    # Back segment (full width, from p_y_min to hy_min)
+    back_depth = hy_min - p_y_min
+    if back_depth > 0.01:
+        make_box(
+            (SX, p_y_min + back_depth / 2, deck_z),
+            (plat_len / 2, back_depth / 2, plat_thick / 2),
+            name="Sep_Plat_Deck_Back", material=MS)
+
+    # Left segment (from hy_min to hy_max, from p_x_min to hx_min)
+    left_width = hx_min - p_x_min
+    if left_width > 0.01:
+        make_box(
+            (p_x_min + left_width / 2, hole_y, deck_z),
+            (left_width / 2, hole_d / 2, plat_thick / 2),
+            name="Sep_Plat_Deck_Left", material=MS)
+
+    # Right segment (from hy_min to hy_max, from hx_max to p_x_max)
+    right_width = p_x_max - hx_max
+    if right_width > 0.01:
+        make_box(
+            (hx_max + right_width / 2, hole_y, deck_z),
+            (right_width / 2, hole_d / 2, plat_thick / 2),
+            name="Sep_Plat_Deck_Right", material=MS)
+
+    # Front segment (full width, from hy_max to p_y_max)
+    front_depth = p_y_max - hy_max
+    if front_depth > 0.01:
+        make_box(
+            (SX, hy_max + front_depth / 2, deck_z),
+            (plat_len / 2, front_depth / 2, plat_thick / 2),
+            name="Sep_Plat_Deck_Front", material=MS)
+
+    # ── Grating bars (parallel along Y, perpendicular to cylinder axis X) ──
+    bar_w = 0.04
+    bar_h = 0.06
+    bar_spacing = 0.15
+    cutout_x_min = hole_x - hole_w / 2
+    cutout_x_max = hole_x + hole_w / 2
+    cutout_y_min = hole_y - hole_d / 2
+    cutout_y_max = hole_y + hole_d / 2
+
+    bar_idx = 0
+    n_bars = int((p_x_max - p_x_min) / bar_spacing) + 1
+    for bi in range(n_bars):
+        bar_x = p_x_min + bar_w / 2 + bi * bar_spacing
+        if bar_x > p_x_max:
+            break
+        in_cutout = cutout_x_min <= bar_x <= cutout_x_max
+        if in_cutout:
+            # Split into upper and lower segments around the ladder opening
+            upper_len = p_y_max - cutout_y_max
+            if upper_len > 0.05:
+                make_box(
+                    (bar_x, cutout_y_max + upper_len / 2, plat_z + bar_h / 2),
+                    (bar_w / 2, upper_len / 2, bar_h / 2),
+                    name="Sep_Plat_Grating_{}".format(bar_idx), material=MS)
+                bar_idx += 1
+            lower_len = cutout_y_min - p_y_min
+            if lower_len > 0.05:
+                make_box(
+                    (bar_x, p_y_min + lower_len / 2, plat_z + bar_h / 2),
+                    (bar_w / 2, lower_len / 2, bar_h / 2),
+                    name="Sep_Plat_Grating_{}".format(bar_idx), material=MS)
+                bar_idx += 1
+        else:
+            # Full-length bar spanning entire platform width
+            make_box(
+                (bar_x, SY, plat_z + bar_h / 2),
+                (bar_w / 2, plat_w / 2, bar_h / 2),
+                name="Sep_Plat_Grating_{}".format(bar_idx), material=MS)
+            bar_idx += 1
 
     # ── Toe plate (thin box around perimeter) ──
     toe_h = 0.08
@@ -325,7 +407,7 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
     n_posts_y = max(2, int(round(plat_w / 0.9)) + 1)
 
     # Access opening on right side (where ladder meets)
-    opening_x = SX + SL * 0.25   # ladder attaches here
+    opening_x = SX + SL * 0.15   # aligned with ladder hole
     opening_half = 0.35
 
     post_index = 0
@@ -399,7 +481,7 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
     # ═══════════════════════════════════════════════════════════
     # 5. LADDER (vertical, right side)
     # ═══════════════════════════════════════════════════════════
-    lad_x = SX + SL * 0.25      # right side of separator
+    lad_x = SX + SL * 0.15              # aligned with platform ladder hole
     lad_y = SY + SR + 0.10      # attached to cylinder surface, offset
     lad_z_top = plat_z + 0.05   # platform level
     lad_z_bot = GROUND_Z + 0.2  # above ground
@@ -465,13 +547,24 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
             (sx_s, sy_s, sz_s), s_r, s_h,
             name=s_name, material=MR, segs=12)
 
-    # ── Small support brackets under platform (triangular-ish boxes) ──
-    for si, x_br in enumerate([SX - plat_len * 0.2, SX + plat_len * 0.2]):
-        make_box(
-            (x_br, SY + SR * 0.6, plat_z - 0.1),
-            (0.08, 0.06, 0.12),
-            name="Sep_Plat_Bracket_{}".format(si), material=MS)
-        make_box(
-            (x_br, SY - SR * 0.6, plat_z - 0.1),
-            (0.08, 0.06, 0.12),
-            name="Sep_Plat_Bracket_{}b".format(si), material=MS)
+    # ── L-shaped support brackets under platform (angle iron, 4 total) ──
+    # Each bracket: vertical leg connects to cylinder surface, horizontal leg supports platform
+    bracket_thick = 0.025
+    bracket_vert_h = 0.20   # height of vertical leg
+    bracket_horiz_w = 0.10  # width of horizontal leg
+    bracket_len = 0.25      # length along cylinder axis
+
+    for side_sgn, side_name in [(-1, "L"), (1, "R")]:
+        bracket_x_positions = [SX - plat_len * 0.25, SX + plat_len * 0.25]
+        for xi, x_br in enumerate(bracket_x_positions):
+            y_br = SY + side_sgn * SR * 0.65
+            # Vertical leg (connects to cylinder surface)
+            make_box(
+                (x_br, y_br, plat_z - bracket_vert_h / 2),
+                (bracket_len / 2, bracket_thick / 2, bracket_vert_h / 2),
+                name="Sep_Plat_Bracket_{}_{}_V".format(side_name, xi), material=MS)
+            # Horizontal leg (supports platform from below)
+            make_box(
+                (x_br, y_br + side_sgn * bracket_horiz_w / 2, plat_z - bracket_thick / 2),
+                (bracket_len / 2, bracket_horiz_w / 2, bracket_thick / 2),
+                name="Sep_Plat_Bracket_{}_{}_H".format(side_name, xi), material=MS)
