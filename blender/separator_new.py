@@ -503,27 +503,50 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
             radius=rung_r, material=MS, segs=6,
             name="Sep_Ladder_Rung_{}".format(ri))
 
-    # ── Ladder cage (top section, last ~2m) ──
-    cage_start = lad_z_top - 2.0
-    if cage_start > lad_z_bot:
-        cage_r = 0.25
-        cage_bar_r = 0.012
-        n_cage_bars = 6
-        # Vertical cage bars
-        for ci in range(n_cage_bars):
-            angle = 2 * math_mod.pi * ci / n_cage_bars
-            cx = lad_x + math_mod.cos(angle) * cage_r * 0.3
-            cy = lad_y + math_mod.sin(angle) * cage_r
+    # ── Ladder safety cage (full height, 4 vertical bars, semicircular rings every 0.4m) ──
+    # Cage wraps around the front half of the ladder, like the flare stack reference
+    cage_r = 0.28         # radius of the semicircular arch
+    cage_bar_r = 0.014    # thickness of cage bars
+    cage_start_z = lad_z_bot + 1.0   # start 1m above ground
+    cage_end_z = lad_z_top - 0.15    # end near platform
+    n_cage_vert = 4       # number of vertical bars
+
+    if cage_end_z > cage_start_z:
+        # ── Vertical cage bars ──
+        # Fan out from ladder center: angles spread across front half (0° = behind, ±90° = sides)
+        # Ladder rails are at ±rail_spacing/2 in Y. Cage covers front (positive Y direction).
+        cage_angles = [-0.6, -0.2, 0.2, 0.6]  # radians from front center
+        for ci, angle in enumerate(cage_angles):
+            cx = lad_x + math_mod.sin(angle) * cage_r * 0.4  # slight X splay
+            cy = lad_y + math_mod.cos(angle) * cage_r * 0.9   # major spread in Y (front)
             make_pipe(
-                (cx, cy, cage_start), (cx, cy, lad_z_top),
+                (cx, cy, cage_start_z), (cx, cy, cage_end_z),
                 radius=cage_bar_r, material=MS, segs=6,
                 name="Sep_Ladder_CageV_{}".format(ci))
-        # Cage rings at top and bottom of cage section
-        for cz in [cage_start, lad_z_top]:
-            make_torus(
-                (lad_x, lad_y, cz), cage_r * 0.35, cage_bar_r,
-                name="Sep_Ladder_CageR_{}".format(int(cz * 10)),
-                material=MS, m_segs=18, r_segs=6)
+
+        # ── Horizontal semicircular rings every 0.4m ──
+        # Each ring is a semicircle arching over the front of the ladder
+        # Modeled as a series of short straight pipes forming an arc
+        n_rings = int((cage_end_z - cage_start_z) / 0.40) + 1
+        ring_segs = 8  # segments per semicircle
+        for ri in range(n_rings):
+            rz = cage_start_z + ri * 0.40
+            if rz > cage_end_z:
+                break
+            for si in range(ring_segs):
+                # Arc from -90° to +90° of front half
+                t1 = si / ring_segs
+                t2 = (si + 1) / ring_segs
+                angle1 = math_mod.pi * (t1 - 0.5)  # -90° to +90°
+                angle2 = math_mod.pi * (t2 - 0.5)
+                x1 = lad_x + math_mod.sin(angle1) * cage_r * 0.3
+                y1 = lad_y + math_mod.cos(angle1) * cage_r
+                x2 = lad_x + math_mod.sin(angle2) * cage_r * 0.3
+                y2 = lad_y + math_mod.cos(angle2) * cage_r
+                make_pipe(
+                    (x1, y1, rz), (x2, y2, rz),
+                    radius=cage_bar_r, material=MS, segs=4,
+                    name="Sep_Ladder_CageR_{}_{}".format(ri, si))
 
     # ═══════════════════════════════════════════════════════════
     # 6. SMALL DETAILS
