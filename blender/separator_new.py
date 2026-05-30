@@ -293,95 +293,90 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
     p_y_min = SY - plat_w / 2
     p_y_max = SY + plat_w / 2
 
-    # ── Grating floor (parallel bars along Y axis) ──
-    # Ladder position for cutout
-    lad_x = SX + SL * 0.25
-    lad_y = SY + SR + 0.10
-
-    # Create platform deck with rectangular hole for ladder access
-    # Instead of Boolean DIFFERENCE, model the deck as 4 boxes around the hole
+    # ═══════════════════════════════════════════════════════════
+    # Grating: cross-hatch mesh (pipes at 90°, no solid deck)
+    # Rectangular hole for ladder exit at hole_x, hole_y
+    # ═══════════════════════════════════════════════════════════
     hole_w = 0.7
     hole_d = 0.5
-    hole_x = SX + SL * 0.15           # closer to center of platform
+    hole_x = SX + SL * 0.15           # aligned with ladder
     hole_y = SY                        # centered on separator axis Y
 
-    hx_min = hole_x - hole_w / 2  # left edge of hole
-    hx_max = hole_x + hole_w / 2  # right edge of hole
-    hy_min = hole_y - hole_d / 2  # back edge of hole
-    hy_max = hole_y + hole_d / 2  # front edge of hole
+    hx_min = hole_x - hole_w / 2
+    hx_max = hole_x + hole_w / 2
+    hy_min = hole_y - hole_d / 2
+    hy_max = hole_y + hole_d / 2
 
-    deck_z = plat_z + plat_thick / 2
+    bar_r = 0.02      # pipe radius for grating
+    bar_spacing = 0.18 # gap between bars
 
-    # Back segment (full width, from p_y_min to hy_min)
-    back_depth = hy_min - p_y_min
-    if back_depth > 0.01:
-        make_box(
-            (SX, p_y_min + back_depth / 2, deck_z),
-            (plat_len / 2, back_depth / 2, plat_thick / 2),
-            name="Sep_Plat_Deck_Back", material=MS)
-
-    # Left segment (from hy_min to hy_max, from p_x_min to hx_min)
-    left_width = hx_min - p_x_min
-    if left_width > 0.01:
-        make_box(
-            (p_x_min + left_width / 2, hole_y, deck_z),
-            (left_width / 2, hole_d / 2, plat_thick / 2),
-            name="Sep_Plat_Deck_Left", material=MS)
-
-    # Right segment (from hy_min to hy_max, from hx_max to p_x_max)
-    right_width = p_x_max - hx_max
-    if right_width > 0.01:
-        make_box(
-            (hx_max + right_width / 2, hole_y, deck_z),
-            (right_width / 2, hole_d / 2, plat_thick / 2),
-            name="Sep_Plat_Deck_Right", material=MS)
-
-    # Front segment (full width, from hy_max to p_y_max)
-    front_depth = p_y_max - hy_max
-    if front_depth > 0.01:
-        make_box(
-            (SX, hy_max + front_depth / 2, deck_z),
-            (plat_len / 2, front_depth / 2, plat_thick / 2),
-            name="Sep_Plat_Deck_Front", material=MS)
-
-    # ── Grating bars (parallel along Y, perpendicular to cylinder axis X) ──
-    bar_w = 0.04
-    bar_h = 0.06
-    bar_spacing = 0.15
-    cutout_x_min = hole_x - hole_w / 2
-    cutout_x_max = hole_x + hole_w / 2
-    cutout_y_min = hole_y - hole_d / 2
-    cutout_y_max = hole_y + hole_d / 2
-
+    # ── Longitudinal bars along Y axis (running front-to-back) ──
     bar_idx = 0
-    n_bars = int((p_x_max - p_x_min) / bar_spacing) + 1
-    for bi in range(n_bars):
-        bar_x = p_x_min + bar_w / 2 + bi * bar_spacing
-        if bar_x > p_x_max:
+    n_bars_x = int(round((p_x_max - p_x_min) / bar_spacing)) + 1
+    for bi in range(n_bars_x):
+        bar_x = p_x_min + bi * bar_spacing
+        if bar_x > p_x_max + 0.01:
             break
-        in_cutout = cutout_x_min <= bar_x <= cutout_x_max
-        if in_cutout:
-            # Split into upper and lower segments around the ladder opening
-            upper_len = p_y_max - cutout_y_max
-            if upper_len > 0.05:
-                make_box(
-                    (bar_x, cutout_y_max + upper_len / 2, plat_z + bar_h / 2),
-                    (bar_w / 2, upper_len / 2, bar_h / 2),
-                    name="Sep_Plat_Grating_{}".format(bar_idx), material=MS)
+        in_hole = hx_min <= bar_x <= hx_max
+        if in_hole:
+            # Split around the ladder hole: segment below and above
+            len_below = hy_min - p_y_min
+            len_above = p_y_max - hy_max
+            if len_below > 0.05:
+                make_pipe(
+                    (bar_x, p_y_min + 0.02, plat_z + bar_r),
+                    (bar_x, hy_min - 0.02, plat_z + bar_r),
+                    radius=bar_r, material=MS, segs=6,
+                    name="Sep_Grat_Y_{}".format(bar_idx))
                 bar_idx += 1
-            lower_len = cutout_y_min - p_y_min
-            if lower_len > 0.05:
-                make_box(
-                    (bar_x, p_y_min + lower_len / 2, plat_z + bar_h / 2),
-                    (bar_w / 2, lower_len / 2, bar_h / 2),
-                    name="Sep_Plat_Grating_{}".format(bar_idx), material=MS)
+            if len_above > 0.05:
+                make_pipe(
+                    (bar_x, hy_max + 0.02, plat_z + bar_r),
+                    (bar_x, p_y_max - 0.02, plat_z + bar_r),
+                    radius=bar_r, material=MS, segs=6,
+                    name="Sep_Grat_Y_{}".format(bar_idx))
                 bar_idx += 1
         else:
-            # Full-length bar spanning entire platform width
-            make_box(
-                (bar_x, SY, plat_z + bar_h / 2),
-                (bar_w / 2, plat_w / 2, bar_h / 2),
-                name="Sep_Plat_Grating_{}".format(bar_idx), material=MS)
+            # Full bar across entire width
+            make_pipe(
+                (bar_x, p_y_min + 0.02, plat_z + bar_r),
+                (bar_x, p_y_max - 0.02, plat_z + bar_r),
+                radius=bar_r, material=MS, segs=6,
+                name="Sep_Grat_Y_{}".format(bar_idx))
+            bar_idx += 1
+
+    # ── Transverse bars along X axis (running left-to-right) ──
+    n_bars_y = int(round((p_y_max - p_y_min) / bar_spacing)) + 1
+    for bi in range(n_bars_y):
+        bar_y = p_y_min + bi * bar_spacing
+        if bar_y > p_y_max + 0.01:
+            break
+        in_hole = hy_min <= bar_y <= hy_max
+        if in_hole:
+            # Split around the ladder hole: left and right segments
+            len_left = hx_min - p_x_min
+            len_right = p_x_max - hx_max
+            if len_left > 0.05:
+                make_pipe(
+                    (p_x_min + 0.02, bar_y, plat_z),
+                    (hx_min - 0.02, bar_y, plat_z),
+                    radius=bar_r, material=MS, segs=6,
+                    name="Sep_Grat_X_{}".format(bar_idx))
+                bar_idx += 1
+            if len_right > 0.05:
+                make_pipe(
+                    (hx_max + 0.02, bar_y, plat_z),
+                    (p_x_max - 0.02, bar_y, plat_z),
+                    radius=bar_r, material=MS, segs=6,
+                    name="Sep_Grat_X_{}".format(bar_idx))
+                bar_idx += 1
+        else:
+            # Full bar across entire length
+            make_pipe(
+                (p_x_min + 0.02, bar_y, plat_z),
+                (p_x_max - 0.02, bar_y, plat_z),
+                radius=bar_r, material=MS, segs=6,
+                name="Sep_Grat_X_{}".format(bar_idx))
             bar_idx += 1
 
     # ── Toe plate (thin box around perimeter) ──
