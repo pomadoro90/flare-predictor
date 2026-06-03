@@ -581,8 +581,9 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
 
     # ── Exit step: connects ladder top to platform edge ──
     # Ladder top is flush with platform level (lad_z_top = plat_z)
-    # Horizontal rails from ladder to front edge of platform grating
-    exit_y = p_y_max   # front edge of platform
+    # Horizontal rails from ladder BACKWARD to platform (avoid crossing cage front)
+    # NOTE: Cage is in FRONT of ladder (Y+), so exit goes BACKWARD (Y-)
+    exit_y = p_y_min   # back edge of platform (avoid cage volume)
     make_pipe(
         (lad_x_l, lad_y, lad_z_top), (lad_x_l, exit_y, lad_z_top),
         radius=rail_r_lad, material=MS, segs=6,
@@ -633,10 +634,11 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
                 name="Sep_Ladder_CageR_{}_curve".format(ri), type='CURVE')
             curve_data.dimensions = '3D'
             curve_data.bevel_depth = cage_bar_r
-            curve_data.bevel_resolution = 4
+            curve_data.bevel_resolution = 8
             curve_data.fill_mode = 'FULL'
             spline = curve_data.splines.new('NURBS')
-            n_curve_pts = 9
+            spline.resolution_u = 24
+            n_curve_pts = 24
             spline.points.add(n_curve_pts - 1)  # starts with 1 point
             for pi in range(n_curve_pts):
                 t = pi / (n_curve_pts - 1)
@@ -655,10 +657,11 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
             name="Sep_Ladder_CageTopR_curve", type='CURVE')
         curve_data.dimensions = '3D'
         curve_data.bevel_depth = top_r
-        curve_data.bevel_resolution = 4
+        curve_data.bevel_resolution = 8
         curve_data.fill_mode = 'FULL'
         spline = curve_data.splines.new('NURBS')
-        n_curve_pts = 9
+        spline.resolution_u = 24
+        n_curve_pts = 24
         spline.points.add(n_curve_pts - 1)
         for pi in range(n_curve_pts):
             t = pi / (n_curve_pts - 1)
