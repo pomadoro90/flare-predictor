@@ -315,8 +315,8 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
     # Hole for ladder exit — elongated along X (ladder rotated 90°, stringers along X)
     # Shift hole slightly inward so its front edge is ~0.15m inside platform front edge
     # This ensures grating bars exist on all 4 sides of the hole
-    hole_w = 0.50    # along X axis (longer — ladder stringers run along X)
-    hole_d = 0.35    # along Y axis (narrower — just enough to step through)
+    hole_w = 0.50    # along X axis (matching cage diameter)
+    hole_d = 0.50    # along Y axis (round, matching cage diameter)
     hole_x = lad_x                              # aligned with ladder X center
     hole_y = lad_y - (lad_y - (p_y_max - 0.15)) # shift inward so hy_max ≈ p_y_max - 0.15
 
@@ -567,25 +567,29 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
         radius=rung_r, material=MS, segs=6,
         name="Sep_Ladder_TopRung")
     
-    # ── Handrails from platform railing to ladder top ──
-    # Diagonal pipes from railing height at front edge down to ladder top
-    for x_hr in [lad_x_l, lad_x_r]:
-        make_pipe(
-            (x_hr, exit_y, plat_z + rail_h), (x_hr, lad_y, lad_z_top + 0.15),
-            radius=0.02, material=MS, segs=6,
-            name="Sep_Ladder_Handrail_{}".format("L" if x_hr == lad_x_l else "R"))
-
-    # ── Ladder safety cage (proper semicircular cage) ──
-    # Standard: cage starts at ~7ft/2.2m above ground.
-    # The cage forms a semicircular arch AROUND the front of the ladder,
-    # from the left rail to the right rail, curving forward (Y+).
+    # ── Cage dimensions (needed early for handrails) ──
     cage_r = 0.40            # forward reach of the cage (Y radius)
-    cage_bar_r = 0.014       # thickness of cage bars
-    cage_start_z = lad_z_bot + 2.2   # start ~2.2m above ground (standard)
-    cage_end_z = lad_z_top           # end flush with platform
-    # Elliptical semicircle: X radius wraps across ladder width, Y radius curves forward
     cage_rx = rail_spacing / 2 + 0.05   # 0.225m — slightly wider than half ladder width
     cage_ry = cage_r                     # 0.40m  — forward reach
+    
+    # ── Handrails from platform railing to cage front (diagonal braces) ──
+    # Diagonal pipes from railing post tops at front edge down to outer cage bar positions at platform level
+    make_pipe(
+        (lad_x_l - 0.02, p_y_max, plat_z + rail_h), (lad_x - cage_rx, lad_y, plat_z + 0.15),
+        radius=0.02, material=MS, segs=6,
+        name="Sep_Ladder_Handrail_L")
+    make_pipe(
+        (lad_x_r + 0.02, p_y_max, plat_z + rail_h), (lad_x + cage_rx, lad_y, plat_z + 0.15),
+        radius=0.02, material=MS, segs=6,
+        name="Sep_Ladder_Handrail_R")
+
+    # ── Ladder safety cage (proper semicircular cage) ──
+    # The cage forms a semicircular arch AROUND the front of the ladder,
+    # from the left rail to the right rail, curving forward (Y+).
+    cage_bar_r = 0.014       # thickness of cage bars
+    cage_start_z = lad_z_bot + 0.5   # start ~0.5m above ground (extended cage, ~double length)
+    cage_end_z = lad_z_top           # end flush with platform
+    # cage_rx, cage_ry already defined above
 
     if cage_end_z > cage_start_z:
         # ── Vertical cage bars (7 bars forming a semicircular arch) ──
@@ -625,6 +629,22 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
                     (x1, y1, rz), (x2, y2, rz),
                     radius=cage_bar_r, material=MS, segs=4,
                     name="Sep_Ladder_CageR_{}_{}".format(ri, si))
+
+        # ── Top closing ring at platform level (thicker semicircle, closes the cage) ──
+        top_r = cage_bar_r * 2  # thicker bar for visibility
+        for si in range(ring_segs):
+            t1 = si / ring_segs
+            t2 = (si + 1) / ring_segs
+            a1 = math_mod.pi * (1.0 - t1)
+            a2 = math_mod.pi * (1.0 - t2)
+            x1 = lad_x + math_mod.cos(a1) * cage_rx
+            y1 = lad_y + math_mod.sin(a1) * cage_ry
+            x2 = lad_x + math_mod.cos(a2) * cage_rx
+            y2 = lad_y + math_mod.sin(a2) * cage_ry
+            make_pipe(
+                (x1, y1, cage_end_z), (x2, y2, cage_end_z),
+                radius=top_r, material=MS, segs=4,
+                name="Sep_Ladder_CageTopR_{}".format(si))
 
     # ═══════════════════════════════════════════════════════════
     # 6. SMALL DETAILS
