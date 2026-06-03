@@ -477,6 +477,15 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
                 material=MS, segs=6)
             post_index += 1
 
+    # ── Cage dimensions (needed early for platform rail clipping) ──
+    rail_spacing = 0.35
+    cage_r = 0.40            # forward reach of the cage (Y radius)
+    cage_rx = rail_spacing / 2 + 0.05   # 0.225m — slightly wider than half ladder width
+    cage_ry = cage_r                     # 0.40m  — forward reach
+    cage_bar_r = 0.014       # thickness of cage bars
+    cage_start_z = lad_z_bot + 0.5   # start ~0.5m above ground
+    cage_end_z = plat_z + rail_h         # cage extends to railing top
+
     # ── Horizontal rails (3 levels: top, middle, bottom) ──
     rail_radius = 0.018
     rail_heights = [0.15, 0.50, 0.85]  # fraction of rail_h from floor
@@ -485,16 +494,41 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
         rh = plat_z + rh_frac
         # Front rail — with gap for ladder access opening
         # Rails extend to exact post positions (no 0.05 offset) so they touch corner posts
-        make_pipe(
-            (p_x_min, p_y_max, rh),
-            (opening_x - opening_half, p_y_max, rh),
-            radius=rail_radius, material=MS, segs=6,
-            name="Sep_Plat_Rail_F1_{}".format(int(rh_frac * 100)))
-        make_pipe(
-            (opening_x + opening_half, p_y_max, rh),
-            (p_x_max, p_y_max, rh),
-            radius=rail_radius, material=MS, segs=6,
-            name="Sep_Plat_Rail_F2_{}".format(int(rh_frac * 100)))
+        # Clip against cage semicircular volume if rail is within cage height range
+        if cage_start_z <= rh <= cage_end_z:
+            y_rel = p_y_max - lad_y
+            if y_rel < cage_ry:  # Y is inside cage reach
+                x_span = math_mod.sqrt(1 - (y_rel / cage_ry) ** 2) * cage_rx
+                cage_x_lo = lad_x - x_span
+                cage_x_hi = lad_x + x_span
+                # F1 left segment: from p_x_min to cage_x_lo (but not past opening gap)
+                f1_end = min(opening_x - opening_half, cage_x_lo)
+                if p_x_min < f1_end - 0.01:
+                    make_pipe(
+                        (p_x_min, p_y_max, rh),
+                        (f1_end, p_y_max, rh),
+                        radius=rail_radius, material=MS, segs=6,
+                        name="Sep_Plat_Rail_F1_{}".format(int(rh_frac * 100)))
+                # F2 right segment: from cage_x_hi to p_x_max (but not before opening gap)
+                f2_start = max(opening_x + opening_half, cage_x_hi)
+                if f2_start < p_x_max - 0.01:
+                    make_pipe(
+                        (f2_start, p_y_max, rh),
+                        (p_x_max, p_y_max, rh),
+                        radius=rail_radius, material=MS, segs=6,
+                        name="Sep_Plat_Rail_F2_{}".format(int(rh_frac * 100)))
+        else:
+            # Outside cage height zone — use original full spans
+            make_pipe(
+                (p_x_min, p_y_max, rh),
+                (opening_x - opening_half, p_y_max, rh),
+                radius=rail_radius, material=MS, segs=6,
+                name="Sep_Plat_Rail_F1_{}".format(int(rh_frac * 100)))
+            make_pipe(
+                (opening_x + opening_half, p_y_max, rh),
+                (p_x_max, p_y_max, rh),
+                radius=rail_radius, material=MS, segs=6,
+                name="Sep_Plat_Rail_F2_{}".format(int(rh_frac * 100)))
         # Back rail (solid, no opening)
         make_pipe(
             (p_x_min, p_y_min, rh),
@@ -521,7 +555,7 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
     # lad_x, lad_y, lad_z_top, lad_z_bot are set in the platform section
 
     # Side rails (thin pipes) — rotated 90°: rails along X, rungs along X too
-    rail_spacing = 0.35
+    # rail_spacing already defined above (cage dimensions section)
     rail_r_lad = 0.02
     lad_x_l = lad_x - rail_spacing / 2   # left rail in X
     lad_x_r = lad_x + rail_spacing / 2   # right rail in X
@@ -568,18 +602,10 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
         radius=rung_r, material=MS, segs=6,
         name="Sep_Ladder_TopRung")
     
-    # ── Cage dimensions (needed early for handrails) ──
-    cage_r = 0.40            # forward reach of the cage (Y radius)
-    cage_rx = rail_spacing / 2 + 0.05   # 0.225m — slightly wider than half ladder width
-    cage_ry = cage_r                     # 0.40m  — forward reach
-    cage_end_z = plat_z + rail_h         # cage extends to railing top
-    
     # ── Ladder safety cage (proper semicircular cage) ──
     # The cage forms a semicircular arch AROUND the front of the ladder,
     # from the left rail to the right rail, curving forward (Y+).
-    cage_bar_r = 0.014       # thickness of cage bars
-    cage_start_z = lad_z_bot + 0.5   # start ~0.5m above ground (extended cage, ~double length)
-    # cage_rx, cage_ry already defined above
+    # cage_rx, cage_ry, cage_bar_r, cage_start_z, cage_end_z already defined above
 
     if cage_end_z > cage_start_z:
         # ── Vertical cage bars (7 bars forming a semicircular arch) ──
@@ -602,16 +628,15 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
             rz = cage_start_z + ri * 0.40
             if rz > cage_end_z + 0.01:
                 break
-            # Create a smooth semicircular curve using Blender curve object
+            # Create a smooth semicircular curve using NURBS (smooth interpolation)
             curve_data = bpy.data.curves.new(
                 name="Sep_Ladder_CageR_{}_curve".format(ri), type='CURVE')
             curve_data.dimensions = '3D'
             curve_data.bevel_depth = cage_bar_r
             curve_data.bevel_resolution = 4
             curve_data.fill_mode = 'FULL'
-            spline = curve_data.splines.new('POLY')
-            # Use more points for smooth semicircle (24 points instead of 10 segments)
-            n_curve_pts = 24
+            spline = curve_data.splines.new('NURBS')
+            n_curve_pts = 9
             spline.points.add(n_curve_pts - 1)  # starts with 1 point
             for pi in range(n_curve_pts):
                 t = pi / (n_curve_pts - 1)
@@ -624,7 +649,7 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
             bpy.context.collection.objects.link(ring_obj)
             assign_mat(ring_obj, MS)
 
-        # ── Top closing ring (thicker, smooth semicircle) ──
+        # ── Top closing ring (thicker, smooth NURBS semicircle) ──
         top_r = cage_bar_r * 2
         curve_data = bpy.data.curves.new(
             name="Sep_Ladder_CageTopR_curve", type='CURVE')
@@ -632,8 +657,8 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
         curve_data.bevel_depth = top_r
         curve_data.bevel_resolution = 4
         curve_data.fill_mode = 'FULL'
-        spline = curve_data.splines.new('POLY')
-        n_curve_pts = 24
+        spline = curve_data.splines.new('NURBS')
+        n_curve_pts = 9
         spline.points.add(n_curve_pts - 1)
         for pi in range(n_curve_pts):
             t = pi / (n_curve_pts - 1)
@@ -652,6 +677,14 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
             (lad_x + cage_rx, lad_y, cage_end_z),
             radius=top_r, material=MS, segs=6,
             name="Sep_Ladder_CageTopR_Back")
+
+        # ── Sphere joints at top ring / back bar junctions to close gaps ──
+        make_uvsphere(
+            (lad_x - cage_rx, lad_y, cage_end_z), top_r,
+            name="Sep_Ladder_CageTop_Joint_L", material=MS, segs=8)
+        make_uvsphere(
+            (lad_x + cage_rx, lad_y, cage_end_z), top_r,
+            name="Sep_Ladder_CageTop_Joint_R", material=MS, segs=8)
 
     # ═══════════════════════════════════════════════════════════
     # 6. SMALL DETAILS
