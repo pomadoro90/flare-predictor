@@ -637,7 +637,7 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
             curve_data.bevel_resolution = 8
             curve_data.fill_mode = 'FULL'
             spline = curve_data.splines.new('NURBS')
-            spline.resolution_u = 24
+            spline.resolution_u = 48
             n_curve_pts = 24
             spline.points.add(n_curve_pts - 1)  # starts with 1 point
             for pi in range(n_curve_pts):
@@ -660,7 +660,7 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
         curve_data.bevel_resolution = 8
         curve_data.fill_mode = 'FULL'
         spline = curve_data.splines.new('NURBS')
-        spline.resolution_u = 24
+        spline.resolution_u = 48
         n_curve_pts = 24
         spline.points.add(n_curve_pts - 1)
         for pi in range(n_curve_pts):
