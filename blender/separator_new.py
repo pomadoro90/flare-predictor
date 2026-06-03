@@ -579,29 +579,7 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
             radius=rung_r, material=MS, segs=6,
             name="Sep_Ladder_Rung_{}".format(ri))
 
-    # ── Exit step: connects ladder top to platform edge ──
-    # Ladder top is flush with platform level (lad_z_top = plat_z)
-    # Horizontal rails from ladder BACKWARD to platform (avoid crossing cage front)
-    # NOTE: Cage is in FRONT of ladder (Y+), so exit goes BACKWARD (Y-)
-    exit_y = p_y_min   # back edge of platform (avoid cage volume)
-    make_pipe(
-        (lad_x_l, lad_y, lad_z_top), (lad_x_l, exit_y, lad_z_top),
-        radius=rail_r_lad, material=MS, segs=6,
-        name="Sep_Ladder_ExitL")
-    make_pipe(
-        (lad_x_r, lad_y, lad_z_top), (lad_x_r, exit_y, lad_z_top),
-        radius=rail_r_lad, material=MS, segs=6,
-        name="Sep_Ladder_ExitR")
-    # Exit rung (cross-bar at top, along X connecting the two rails at front edge)
-    make_pipe(
-        (lad_x_l, exit_y, lad_z_top), (lad_x_r, exit_y, lad_z_top),
-        radius=rung_r, material=MS, segs=6,
-        name="Sep_Ladder_ExitRung")
-    # Cross-bar at ladder top (along X, connecting the two rails at ladder position)
-    make_pipe(
-        (lad_x_l, lad_y, lad_z_top), (lad_x_r, lad_y, lad_z_top),
-        radius=rung_r, material=MS, segs=6,
-        name="Sep_Ladder_TopRung")
+    # Ladder top remains open inside the safety cage for unobstructed exit.
     
     # ── Ladder safety cage (proper semicircular cage) ──
     # The cage forms a semicircular arch AROUND the front of the ladder,
@@ -680,14 +658,6 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
             (lad_x + cage_rx, lad_y, cage_end_z),
             radius=top_r, material=MS, segs=6,
             name="Sep_Ladder_CageTopR_Back")
-
-        # ── Sphere joints at top ring / back bar junctions to close gaps ──
-        make_uvsphere(
-            (lad_x - cage_rx, lad_y, cage_end_z), top_r * 1.8,
-            name="Sep_Ladder_CageTop_Joint_L", material=MS, segs=12)
-        make_uvsphere(
-            (lad_x + cage_rx, lad_y, cage_end_z), top_r * 1.8,
-            name="Sep_Ladder_CageTop_Joint_R", material=MS, segs=12)
 
     # ═══════════════════════════════════════════════════════════
     # 6. SMALL DETAILS
