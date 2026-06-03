@@ -578,25 +578,25 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
     # ── Ladder safety cage (proper semicircular cage) ──
     # Standard: cage starts at ~7ft/2.2m above ground.
     # The cage forms a semicircular arch AROUND the front of the ladder,
-    # from the left rail to the right rail, using torus rings + vertical bars.
-    cage_r = 0.40            # radius of the semicircular cage arch
+    # from the left rail to the right rail, curving forward (Y+).
+    cage_r = 0.40            # forward reach of the cage (Y radius)
     cage_bar_r = 0.014       # thickness of cage bars
     cage_start_z = lad_z_bot + 2.2   # start ~2.2m above ground (standard)
     cage_end_z = lad_z_top           # end flush with platform
-    # The cage center is at the ladder position on X, offset Y-forward to wrap the front
-    # For a proper cage, the center is at the ladder position, arch extends forward (Y+)
-    cage_center_y = lad_y     # center of cage arc = same Y as ladder rails
+    # Elliptical semicircle: X radius wraps across ladder width, Y radius curves forward
+    cage_rx = rail_spacing / 2 + 0.05   # 0.225m — slightly wider than half ladder width
+    cage_ry = cage_r                     # 0.40m  — forward reach
 
     if cage_end_z > cage_start_z:
         # ── Vertical cage bars (7 bars forming a semicircular arch) ──
-        # Arc from -90° (left side) to +90° (right side), sweeping forward (Y+)
-        # This wraps the front of the ladder
+        # Arc from π (left side at lad_x - cage_rx, lad_y) through π/2 (center front)
+        # to 0 (right side at lad_x + cage_rx, lad_y), wrapping around the front.
         n_vert = 7
         for vi in range(n_vert):
             frac = vi / (n_vert - 1)  # 0.0 to 1.0
-            angle = -math_mod.pi/2 + frac * math_mod.pi  # -90° to +90°
-            bar_x = lad_x + math_mod.cos(angle) * 0.02  # tiny X spread (ladder width)
-            bar_y = cage_center_y + math_mod.sin(angle) * cage_r  # semicircle extending forward
+            angle = math_mod.pi * (1.0 - frac)  # π → 0 (left → right through front)
+            bar_x = lad_x + math_mod.cos(angle) * cage_rx
+            bar_y = lad_y + math_mod.sin(angle) * cage_ry
             make_pipe(
                 (bar_x, bar_y, cage_start_z), (bar_x, bar_y, cage_end_z),
                 radius=cage_bar_r, material=MS, segs=6,
@@ -604,7 +604,7 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
 
         # ── Horizontal semicircular rings at regular intervals ──
         # Using pipe segments to form visible half-rings from left to right,
-        # curving forward around the ladder. More visible than scaled torus rings.
+        # curving forward around the ladder.
         n_rings = int((cage_end_z - cage_start_z) / 0.40) + 1
         ring_segs = 10  # segments per half-ring
         for ri in range(n_rings):
@@ -614,13 +614,13 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
             for si in range(ring_segs):
                 t1 = si / ring_segs
                 t2 = (si + 1) / ring_segs
-                # Arc from -90° to +90° (left rail to right rail, curving forward)
-                a1 = -math_mod.pi/2 + t1 * math_mod.pi
-                a2 = -math_mod.pi/2 + t2 * math_mod.pi
-                x1 = lad_x + math_mod.cos(a1) * 0.02
-                y1 = cage_center_y + math_mod.sin(a1) * cage_r
-                x2 = lad_x + math_mod.cos(a2) * 0.02
-                y2 = cage_center_y + math_mod.sin(a2) * cage_r
+                # Arc from π → 0 (left rail to right rail, curving forward)
+                a1 = math_mod.pi * (1.0 - t1)
+                a2 = math_mod.pi * (1.0 - t2)
+                x1 = lad_x + math_mod.cos(a1) * cage_rx
+                y1 = lad_y + math_mod.sin(a1) * cage_ry
+                x2 = lad_x + math_mod.cos(a2) * cage_rx
+                y2 = lad_y + math_mod.sin(a2) * cage_ry
                 make_pipe(
                     (x1, y1, rz), (x2, y2, rz),
                     radius=cage_bar_r, material=MS, segs=4,
