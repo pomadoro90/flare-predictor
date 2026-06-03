@@ -136,39 +136,57 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
         head.scale = (head_scale_x, 1.0, 1.0)
 
     # ═══════════════════════════════════════════════════════════
-    # 2. SADDLE SUPPORTS (at ~20% and ~80% of length)
+    # 2. SADDLE SUPPORTS — proper curved cradle saddles
     # ═══════════════════════════════════════════════════════════
-    saddle_positions = [-SL * 0.3, SL * 0.3]  # 20% / 80%
+    saddle_positions = [-SL * 0.3, SL * 0.3]  # 35% / 65% of length
 
     for i, x_off in enumerate(saddle_positions):
         sx = SX + x_off
         leg_h = SZ - SR                     # height from ground to cylinder bottom
 
-        # ── Curved saddle plate: short cylinder segment ──
-        # We create a short cylinder with same radius as body + gap,
-        # centered below the body, scaled to only cover bottom portion
+        # ── Curved cradle plate: half-cylinder hugging tank bottom ──
+        # Use a full cylinder positioned so its top half is hidden inside tank,
+        # but we only want the bottom portion visible.
+        # We create it at tank center with same radius, then it's visually
+        # hidden by the tank body on top. Width along X-axis (tank length).
+        saddle_w = 0.45   # width along tank axis
         saddle = make_cylinder(
-            (sx, SY, SZ - SR * 0.2), SR + 0.04, 0.35,
+            (sx, SY, SZ), SR + 0.03, saddle_w,
             rot=(0, math_mod.radians(90), 0),
             name="Sep_SaddlePlate_" + str(i),
-            material=MS, segs=14)
-        # Scale down vertically so it only wraps the bottom half
-        saddle.scale = (1.0, 1.0, 0.55)
+            material=MS, segs=24)
+        # Scale Z to 0.85 so it hugs tank closely but is clearly a curved cradle
+        # No X-scaling - keep the full circular cross-section visible
+        saddle.scale = (1.0, 1.0, 0.85)
 
-        # ── Vertical legs ──
-        leg_w = 0.12
-        leg_d = 0.18
+        # ── Bottom wear plate (flat plate at the very bottom of the cradle) ──
+        make_box(
+            (sx, SY, SZ - SR * 0.85 - 0.02),
+            (saddle_w / 2, SR * 0.6 / 2, 0.02),
+            name="Sep_SaddleWear_" + str(i), material=MS)
+
+        # ── Vertical web plate (center, along Y axis) ──
+        # This is the main structural plate connecting cradle to base
+        web_h = leg_h * 0.85   # most of the height
+        web_z = GROUND_Z + web_h / 2
+        make_box(
+            (sx, SY, web_z),
+            (0.025, SR * 0.55 / 2, web_h / 2),   # thin plate, wide in Y, tall in Z
+            name="Sep_SaddleWeb_" + str(i), material=MS)
+
+        # ── Side stiffener plates (2 triangular gussets on each side) ──
         for side_sgn, side_name in [(-1, "L"), (1, "R")]:
+            # Flat plate on each side, connecting cradle top to base
+            gusset_z = GROUND_Z + leg_h * 0.45
             make_box(
-                (sx, SY + side_sgn * SR * 0.55, GROUND_Z + leg_h / 2),
-                (leg_w / 2, leg_d / 2, leg_h / 2),
-                name="Sep_SaddleLeg_{}_{}".format(i, side_name),
-                material=MS)
+                (sx, SY + side_sgn * SR * 0.30, gusset_z),
+                (saddle_w / 2 * 0.8, 0.02, leg_h * 0.45 / 2),
+                name="Sep_SaddleGusset_{}_{}" .format(i, side_name), material=MS)
 
         # ── Base plate ──
         make_box(
-            (sx, SY, GROUND_Z + 0.025),
-            (0.35 / 2, SR * 0.7 / 2, 0.025),
+            (sx, SY, GROUND_Z + 0.03),
+            (saddle_w * 1.1 / 2, SR * 0.7 / 2, 0.03),
             name="Sep_SaddleBase_" + str(i),
             material=MN)
 
@@ -200,22 +218,17 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
         "Sep_Drain", flange_scale=1.5, flange_r=0.035,
         material=MS)
 
-    # ── Manhole on left head ──
-    mh_x = SX - SL / 2 + 0.05  # just inside the head surface
-    mh_y = SY
-    mh_z = SZ
-    mh_r = 0.28
-    # Disc (cylinder with small depth, facing X)
-    mh = make_cylinder(
-        (mh_x, mh_y, mh_z), mh_r, 0.05,
-        rot=(0, math_mod.radians(90), 0),
-        name="Sep_Manhole_Disc", material=MS, segs=20)
-    # Bolt ring (torus on the disc face)
-    make_torus(
-        (mh_x, mh_y + 0.02, mh_z),
-        mh_r * 0.82, 0.018,
-        name="Sep_Manhole_BoltRing",
-        material=MS, m_segs=20, r_segs=8)
+    # ── Drain/valve nozzle on left head bottom ──
+    # Small nozzle port on the lower portion of the left elliptical head,
+    # pointing outward at an angle (left and slightly down)
+    head_drain_x = SX - SL * 0.45
+    head_drain_z = SZ - SR * 0.3
+    make_nozzle(
+        (head_drain_x, SY, head_drain_z), 0.08, 0.35, (-0.5, 0, -0.866),
+        "Sep_HeadDrain", flange_scale=1.4, flange_r=0.03,
+        material=MS)
+
+    # ── (Manhole removed from left head per reference — no manhole on left end cap) ──
 
     # ── Level gauge (right side, vertical pipe with flags) ──
     lg_x = SX + SL * 0.25
@@ -562,45 +575,52 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
             radius=0.02, material=MS, segs=6,
             name="Sep_Ladder_Handrail_{}".format("L" if x_hr == lad_x_l else "R"))
 
-    # ── Ladder safety cage (full height, 4 vertical bars, semicircular rings every 0.4m) ──
-    # Cage wraps around the front half of the ladder, rotated 90°: arches in X-Z plane
-    # Cage offset forward (Y+) from ladder so there's clear space between ladder and cage
-    cage_offset_y = 0.25     # how far the cage center sits forward of the ladder
-    cage_r = 0.35            # radius of the semicircular arch (wider for clearance)
+    # ── Ladder safety cage (proper semicircular cage) ──
+    # Standard: cage starts at ~7ft/2.2m above ground.
+    # The cage forms a semicircular arch AROUND the front of the ladder,
+    # from the left rail to the right rail, using torus rings + vertical bars.
+    cage_r = 0.40            # radius of the semicircular cage arch
     cage_bar_r = 0.014       # thickness of cage bars
-    cage_start_z = lad_z_bot + 1.0   # start 1m above ground
-    cage_end_z = lad_z_top - 0.15    # end near platform
-    cage_cy = lad_y + cage_offset_y  # center of cage arches, offset forward
+    cage_start_z = lad_z_bot + 2.2   # start ~2.2m above ground (standard)
+    cage_end_z = lad_z_top           # end flush with platform
+    # The cage center is at the ladder position on X, offset Y-forward to wrap the front
+    # For a proper cage, the center is at the ladder position, arch extends forward (Y+)
+    cage_center_y = lad_y     # center of cage arc = same Y as ladder rails
 
     if cage_end_z > cage_start_z:
-        # ── Vertical cage bars ──
-        # Spread along X (perpendicular to cylinder axis Y), offset forward
-        cage_angles = [-1.05, -0.35, 0.35, 1.05]  # wider spread in radians
-        for ci, angle in enumerate(cage_angles):
-            cx = lad_x + math_mod.sin(angle) * cage_r
-            cy = cage_cy + math_mod.cos(angle) * cage_r * 0.35  # depth in Y
+        # ── Vertical cage bars (7 bars forming a semicircular arch) ──
+        # Arc from -90° (left side) to +90° (right side), sweeping forward (Y+)
+        # This wraps the front of the ladder
+        n_vert = 7
+        for vi in range(n_vert):
+            frac = vi / (n_vert - 1)  # 0.0 to 1.0
+            angle = -math_mod.pi/2 + frac * math_mod.pi  # -90° to +90°
+            bar_x = lad_x + math_mod.cos(angle) * 0.02  # tiny X spread (ladder width)
+            bar_y = cage_center_y + math_mod.sin(angle) * cage_r  # semicircle extending forward
             make_pipe(
-                (cx, cy, cage_start_z), (cx, cy, cage_end_z),
+                (bar_x, bar_y, cage_start_z), (bar_x, bar_y, cage_end_z),
                 radius=cage_bar_r, material=MS, segs=6,
-                name="Sep_Ladder_CageV_{}".format(ci))
+                name="Sep_Ladder_CageV_{}".format(vi))
 
-        # ── Horizontal semicircular rings every 0.4m ──
-        # Arcs in X-Z plane (rotated 90°), center offset forward
+        # ── Horizontal semicircular rings at regular intervals ──
+        # Using pipe segments to form visible half-rings from left to right,
+        # curving forward around the ladder. More visible than scaled torus rings.
         n_rings = int((cage_end_z - cage_start_z) / 0.40) + 1
-        ring_segs = 8  # segments per semicircle
+        ring_segs = 10  # segments per half-ring
         for ri in range(n_rings):
             rz = cage_start_z + ri * 0.40
-            if rz > cage_end_z:
+            if rz > cage_end_z + 0.01:
                 break
             for si in range(ring_segs):
                 t1 = si / ring_segs
                 t2 = (si + 1) / ring_segs
-                angle1 = math_mod.pi * (t1 - 0.5)  # -90° to +90°
-                angle2 = math_mod.pi * (t2 - 0.5)
-                x1 = lad_x + math_mod.sin(angle1) * cage_r
-                y1 = cage_cy + math_mod.cos(angle1) * cage_r * 0.35
-                x2 = lad_x + math_mod.sin(angle2) * cage_r
-                y2 = cage_cy + math_mod.cos(angle2) * cage_r * 0.35
+                # Arc from -90° to +90° (left rail to right rail, curving forward)
+                a1 = -math_mod.pi/2 + t1 * math_mod.pi
+                a2 = -math_mod.pi/2 + t2 * math_mod.pi
+                x1 = lad_x + math_mod.cos(a1) * 0.02
+                y1 = cage_center_y + math_mod.sin(a1) * cage_r
+                x2 = lad_x + math_mod.cos(a2) * 0.02
+                y2 = cage_center_y + math_mod.sin(a2) * cage_r
                 make_pipe(
                     (x1, y1, rz), (x2, y2, rz),
                     radius=cage_bar_r, material=MS, segs=4,

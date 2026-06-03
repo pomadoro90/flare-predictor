@@ -24,7 +24,7 @@ def mat(name, rgb, rough=0.45, metal=0.25):
     return m
 
 MR = mat("Red", (0.82, 0.15, 0.10), metal=0.30)
-MW = mat("White", (0.92, 0.91, 0.87))
+MW = mat("White", (0.82, 0.82, 0.80), rough=0.5, metal=0.1)
 MS = mat("Steel", (0.55, 0.58, 0.62), metal=0.80, rough=0.30)
 MY = mat("Yellow", (0.95, 0.82, 0.05))
 MM = mat("Sensor", (0.06, 0.08, 0.16), metal=0.70, rough=0.30)
@@ -49,9 +49,11 @@ sun.data.energy = 4.0
 # ─── Render settings ───
 s = bpy.context.scene
 s.render.engine = 'BLENDER_EEVEE'
-s.eevee.taa_render_samples = 16
-s.view_settings.exposure = 1.2
+s.eevee.taa_render_samples = 32
+s.view_settings.exposure = 0.35
 s.view_settings.gamma = 1.0
+s.eevee.use_gtao = True
+s.eevee.gtao_distance = 10.0
 s.render.resolution_x = 800
 s.render.resolution_y = 600
 s.render.resolution_percentage = 100
@@ -62,7 +64,7 @@ s.render.image_settings.quality = 85
 w = bpy.data.worlds['World']
 w.use_nodes = True
 bg = w.node_tree.nodes['Background']
-bg.inputs['Color'].default_value = (0.95, 0.95, 0.95, 1.0)
+bg.inputs['Color'].default_value = (0.45, 0.55, 0.75, 1.0)
 bg.inputs['Strength'].default_value = 1.0
 
 from mathutils import Vector
