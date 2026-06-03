@@ -96,6 +96,11 @@ views = {
         'tgt': (-5.9, -3.0, 2.8),
         'lens': 30,
     },
+    'cage_front': {
+        'loc': (-5.9, -1.5, 3.0),
+        'tgt': (-5.9, -3.0, 2.5),
+        'lens': 25,
+    },
 }
 
 out_dir = os.path.join(script_dir, "renders")
