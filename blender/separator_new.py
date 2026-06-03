@@ -683,11 +683,11 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
 
         # ── Sphere joints at top ring / back bar junctions to close gaps ──
         make_uvsphere(
-            (lad_x - cage_rx, lad_y, cage_end_z), top_r,
-            name="Sep_Ladder_CageTop_Joint_L", material=MS, segs=8)
+            (lad_x - cage_rx, lad_y, cage_end_z), top_r * 1.8,
+            name="Sep_Ladder_CageTop_Joint_L", material=MS, segs=12)
         make_uvsphere(
-            (lad_x + cage_rx, lad_y, cage_end_z), top_r,
-            name="Sep_Ladder_CageTop_Joint_R", material=MS, segs=8)
+            (lad_x + cage_rx, lad_y, cage_end_z), top_r * 1.8,
+            name="Sep_Ladder_CageTop_Joint_R", material=MS, segs=12)
 
     # ═══════════════════════════════════════════════════════════
     # 6. SMALL DETAILS
