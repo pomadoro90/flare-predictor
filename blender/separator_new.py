@@ -315,10 +315,10 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
     # Hole for ladder exit — elongated along X (ladder rotated 90°, stringers along X)
     # Shift hole slightly inward so its front edge is ~0.15m inside platform front edge
     # This ensures grating bars exist on all 4 sides of the hole
-    hole_w = 0.50    # along X axis (matching cage diameter)
-    hole_d = 0.50    # along Y axis (round, matching cage diameter)
-    hole_x = lad_x                              # aligned with ladder X center
-    hole_y = lad_y - (lad_y - (p_y_max - 0.15)) # shift inward so hy_max ≈ p_y_max - 0.15
+    hole_w = 2 * 0.225 + 0.10   # = 0.55, matches cage diameter + margin
+    hole_d = 0.40 + 0.10        # = 0.50, matches cage forward reach + margin
+    hole_x = lad_x              # aligned with ladder X center
+    hole_y = lad_y              # aligned with ladder/cage center, no inward shift
 
     hx_min = hole_x - hole_w / 2
     hx_max = hole_x + hole_w / 2
@@ -571,15 +571,21 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
     cage_r = 0.40            # forward reach of the cage (Y radius)
     cage_rx = rail_spacing / 2 + 0.05   # 0.225m — slightly wider than half ladder width
     cage_ry = cage_r                     # 0.40m  — forward reach
+    cage_end_z = plat_z + rail_h         # cage extends to railing top
     
-    # ── Handrails from platform railing to cage front (diagonal braces) ──
-    # Diagonal pipes from railing post tops at front edge down to outer cage bar positions at platform level
+    # ── Two diagonal braces from cage top to railing ──
+    # They connect from the left and right cage bar tops at platform level,
+    # angling backward to the railing post positions on the platform front edge.
+    # Left brace: from leftmost cage bar at cage_end_z to railing front-left post
     make_pipe(
-        (lad_x_l - 0.02, p_y_max, plat_z + rail_h), (lad_x - cage_rx, lad_y, plat_z + 0.15),
+        (lad_x - cage_rx, lad_y, cage_end_z),
+        (lad_x - cage_rx - 0.05, p_y_max, plat_z + rail_h),
         radius=0.02, material=MS, segs=6,
         name="Sep_Ladder_Handrail_L")
+    # Right brace: from rightmost cage bar at cage_end_z to railing front-right post
     make_pipe(
-        (lad_x_r + 0.02, p_y_max, plat_z + rail_h), (lad_x + cage_rx, lad_y, plat_z + 0.15),
+        (lad_x + cage_rx, lad_y, cage_end_z),
+        (lad_x + cage_rx + 0.05, p_y_max, plat_z + rail_h),
         radius=0.02, material=MS, segs=6,
         name="Sep_Ladder_Handrail_R")
 
@@ -588,7 +594,6 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
     # from the left rail to the right rail, curving forward (Y+).
     cage_bar_r = 0.014       # thickness of cage bars
     cage_start_z = lad_z_bot + 0.5   # start ~0.5m above ground (extended cage, ~double length)
-    cage_end_z = lad_z_top           # end flush with platform
     # cage_rx, cage_ry already defined above
 
     if cage_end_z > cage_start_z:
