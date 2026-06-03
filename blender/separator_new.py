@@ -484,32 +484,33 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
     for rh_frac in rail_heights:
         rh = plat_z + rh_frac
         # Front rail — with gap for ladder access opening
+        # Rails extend to exact post positions (no 0.05 offset) so they touch corner posts
         make_pipe(
-            (p_x_min + 0.05, p_y_max, rh),
+            (p_x_min, p_y_max, rh),
             (opening_x - opening_half, p_y_max, rh),
             radius=rail_radius, material=MS, segs=6,
             name="Sep_Plat_Rail_F1_{}".format(int(rh_frac * 100)))
         make_pipe(
             (opening_x + opening_half, p_y_max, rh),
-            (p_x_max - 0.05, p_y_max, rh),
+            (p_x_max, p_y_max, rh),
             radius=rail_radius, material=MS, segs=6,
             name="Sep_Plat_Rail_F2_{}".format(int(rh_frac * 100)))
         # Back rail (solid, no opening)
         make_pipe(
-            (p_x_min + 0.05, p_y_min, rh),
-            (p_x_max - 0.05, p_y_min, rh),
+            (p_x_min, p_y_min, rh),
+            (p_x_max, p_y_min, rh),
             radius=rail_radius, material=MS, segs=6,
             name="Sep_Plat_Rail_B_{}".format(int(rh_frac * 100)))
         # Left rail (solid, no opening)
         make_pipe(
-            (p_x_min, p_y_min + 0.05, rh),
-            (p_x_min, p_y_max - 0.05, rh),
+            (p_x_min, p_y_min, rh),
+            (p_x_min, p_y_max, rh),
             radius=rail_radius, material=MS, segs=6,
             name="Sep_Plat_Rail_L_{}".format(int(rh_frac * 100)))
         # Right rail (solid, no opening)
         make_pipe(
-            (p_x_max, p_y_min + 0.05, rh),
-            (p_x_max, p_y_max - 0.05, rh),
+            (p_x_max, p_y_min, rh),
+            (p_x_max, p_y_max, rh),
             radius=rail_radius, material=MS, segs=6,
             name="Sep_Plat_Rail_R_{}".format(int(rh_frac * 100)))
 
