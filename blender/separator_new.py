@@ -573,22 +573,6 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
     cage_ry = cage_r                     # 0.40m  — forward reach
     cage_end_z = plat_z + rail_h         # cage extends to railing top
     
-    # ── Two diagonal braces from cage top to railing ──
-    # They connect from the left and right cage bar tops at platform level,
-    # angling backward to the railing post positions on the platform front edge.
-    # Left brace: from leftmost cage bar at cage_end_z to railing front-left post
-    make_pipe(
-        (lad_x - cage_rx, lad_y, cage_end_z),
-        (lad_x - cage_rx - 0.05, p_y_max, plat_z + rail_h),
-        radius=0.02, material=MS, segs=6,
-        name="Sep_Ladder_Handrail_L")
-    # Right brace: from rightmost cage bar at cage_end_z to railing front-right post
-    make_pipe(
-        (lad_x + cage_rx, lad_y, cage_end_z),
-        (lad_x + cage_rx + 0.05, p_y_max, plat_z + rail_h),
-        radius=0.02, material=MS, segs=6,
-        name="Sep_Ladder_Handrail_R")
-
     # ── Ladder safety cage (proper semicircular cage) ──
     # The cage forms a semicircular arch AROUND the front of the ladder,
     # from the left rail to the right rail, curving forward (Y+).
@@ -611,45 +595,62 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
                 radius=cage_bar_r, material=MS, segs=6,
                 name="Sep_Ladder_CageV_{}".format(vi))
 
-        # ── Horizontal semicircular rings at regular intervals ──
-        # Using pipe segments to form visible half-rings from left to right,
-        # curving forward around the ladder.
+        # ── Horizontal semicircular rings at regular intervals (SMOOTH curves) ──
         n_rings = int((cage_end_z - cage_start_z) / 0.40) + 1
-        ring_segs = 10  # segments per half-ring
         for ri in range(n_rings):
             rz = cage_start_z + ri * 0.40
             if rz > cage_end_z + 0.01:
                 break
-            for si in range(ring_segs):
-                t1 = si / ring_segs
-                t2 = (si + 1) / ring_segs
-                # Arc from π → 0 (left rail to right rail, curving forward)
-                a1 = math_mod.pi * (1.0 - t1)
-                a2 = math_mod.pi * (1.0 - t2)
-                x1 = lad_x + math_mod.cos(a1) * cage_rx
-                y1 = lad_y + math_mod.sin(a1) * cage_ry
-                x2 = lad_x + math_mod.cos(a2) * cage_rx
-                y2 = lad_y + math_mod.sin(a2) * cage_ry
-                make_pipe(
-                    (x1, y1, rz), (x2, y2, rz),
-                    radius=cage_bar_r, material=MS, segs=4,
-                    name="Sep_Ladder_CageR_{}_{}".format(ri, si))
+            # Create a smooth semicircular curve using Blender curve object
+            curve_data = bpy.data.curves.new(
+                name="Sep_Ladder_CageR_{}_curve".format(ri), type='CURVE')
+            curve_data.dimensions = '3D'
+            curve_data.bevel_depth = cage_bar_r
+            curve_data.bevel_resolution = 4
+            curve_data.fill_mode = 'FULL'
+            spline = curve_data.splines.new('POLY')
+            # Use more points for smooth semicircle (24 points instead of 10 segments)
+            n_curve_pts = 24
+            spline.points.add(n_curve_pts - 1)  # starts with 1 point
+            for pi in range(n_curve_pts):
+                t = pi / (n_curve_pts - 1)
+                angle = math_mod.pi * (1.0 - t)  # π → 0
+                px = lad_x + math_mod.cos(angle) * cage_rx
+                py = lad_y + math_mod.sin(angle) * cage_ry
+                spline.points[pi].co = (px, py, rz, 1)
+            ring_obj = bpy.data.objects.new(
+                "Sep_Ladder_CageR_{}".format(ri), curve_data)
+            bpy.context.collection.objects.link(ring_obj)
+            assign_mat(ring_obj, MS)
 
-        # ── Top closing ring at platform level (thicker semicircle, closes the cage) ──
-        top_r = cage_bar_r * 2  # thicker bar for visibility
-        for si in range(ring_segs):
-            t1 = si / ring_segs
-            t2 = (si + 1) / ring_segs
-            a1 = math_mod.pi * (1.0 - t1)
-            a2 = math_mod.pi * (1.0 - t2)
-            x1 = lad_x + math_mod.cos(a1) * cage_rx
-            y1 = lad_y + math_mod.sin(a1) * cage_ry
-            x2 = lad_x + math_mod.cos(a2) * cage_rx
-            y2 = lad_y + math_mod.sin(a2) * cage_ry
-            make_pipe(
-                (x1, y1, cage_end_z), (x2, y2, cage_end_z),
-                radius=top_r, material=MS, segs=4,
-                name="Sep_Ladder_CageTopR_{}".format(si))
+        # ── Top closing ring (thicker, smooth semicircle) ──
+        top_r = cage_bar_r * 2
+        curve_data = bpy.data.curves.new(
+            name="Sep_Ladder_CageTopR_curve", type='CURVE')
+        curve_data.dimensions = '3D'
+        curve_data.bevel_depth = top_r
+        curve_data.bevel_resolution = 4
+        curve_data.fill_mode = 'FULL'
+        spline = curve_data.splines.new('POLY')
+        n_curve_pts = 24
+        spline.points.add(n_curve_pts - 1)
+        for pi in range(n_curve_pts):
+            t = pi / (n_curve_pts - 1)
+            angle = math_mod.pi * (1.0 - t)
+            px = lad_x + math_mod.cos(angle) * cage_rx
+            py = lad_y + math_mod.sin(angle) * cage_ry
+            spline.points[pi].co = (px, py, cage_end_z, 1)
+        top_obj = bpy.data.objects.new(
+            "Sep_Ladder_CageTopR", curve_data)
+        bpy.context.collection.objects.link(top_obj)
+        assign_mat(top_obj, MS)
+
+        # ── Back closing bar at top of cage (connects left/right cage bars at ladder Y) ──
+        make_pipe(
+            (lad_x - cage_rx, lad_y, cage_end_z),
+            (lad_x + cage_rx, lad_y, cage_end_z),
+            radius=top_r, material=MS, segs=6,
+            name="Sep_Ladder_CageTopR_Back")
 
     # ═══════════════════════════════════════════════════════════
     # 6. SMALL DETAILS
