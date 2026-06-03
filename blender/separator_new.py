@@ -312,90 +312,40 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
     p_y_min = SY - plat_w / 2
     p_y_max = SY + plat_w / 2
 
-    # Hole for ladder exit — elongated along X (ladder rotated 90°, stringers along X)
-    # Shift hole slightly inward so its front edge is ~0.15m inside platform front edge
-    # This ensures grating bars exist on all 4 sides of the hole
-    hole_w = 2 * 0.225 + 0.10   # = 0.55, matches cage diameter + margin
-    hole_d = 0.40 + 0.10        # = 0.50, matches cage forward reach + margin
-    hole_x = lad_x              # aligned with ladder X center
-    hole_y = lad_y              # aligned with ladder/cage center, no inward shift
-
-    hx_min = hole_x - hole_w / 2
-    hx_max = hole_x + hole_w / 2
-    hy_min = hole_y - hole_d / 2
-    hy_max = hole_y + hole_d / 2
+    # No hole in the platform — grating is continuous under the ladder.
+    # The cage sits above the platform surface and does NOT cut through it.
 
     bar_r = 0.02      # pipe radius for grating
     bar_spacing = 0.18 # gap between bars
 
     # ── Longitudinal bars along Y axis (running front-to-back) ──
+    # All bars are full-length — no hole around ladder.
     bar_idx = 0
     n_bars_x = int(round((p_x_max - p_x_min) / bar_spacing)) + 1
     for bi in range(n_bars_x):
         bar_x = p_x_min + bi * bar_spacing
         if bar_x > p_x_max + 0.01:
             break
-        in_hole = hx_min <= bar_x <= hx_max
-        if in_hole:
-            # Split around the ladder hole: segment below and above
-            len_below = hy_min - p_y_min
-            len_above = p_y_max - hy_max
-            if len_below > 0.05:
-                make_pipe(
-                    (bar_x, p_y_min + 0.02, plat_z + bar_r),
-                    (bar_x, hy_min - 0.02, plat_z + bar_r),
-                    radius=bar_r, material=MS, segs=6,
-                    name="Sep_Grat_Y_{}".format(bar_idx))
-                bar_idx += 1
-            if len_above > 0.05:
-                make_pipe(
-                    (bar_x, hy_max + 0.02, plat_z + bar_r),
-                    (bar_x, p_y_max - 0.02, plat_z + bar_r),
-                    radius=bar_r, material=MS, segs=6,
-                    name="Sep_Grat_Y_{}".format(bar_idx))
-                bar_idx += 1
-        else:
-            # Full bar across entire width
-            make_pipe(
-                (bar_x, p_y_min + 0.02, plat_z + bar_r),
-                (bar_x, p_y_max - 0.02, plat_z + bar_r),
-                radius=bar_r, material=MS, segs=6,
-                name="Sep_Grat_Y_{}".format(bar_idx))
-            bar_idx += 1
+        make_pipe(
+            (bar_x, p_y_min + 0.02, plat_z + bar_r),
+            (bar_x, p_y_max - 0.02, plat_z + bar_r),
+            radius=bar_r, material=MS, segs=6,
+            name="Sep_Grat_Y_{}".format(bar_idx))
+        bar_idx += 1
 
     # ── Transverse bars along X axis (running left-to-right) ──
+    # All bars are full-length — no hole around ladder.
     n_bars_y = int(round((p_y_max - p_y_min) / bar_spacing)) + 1
     for bi in range(n_bars_y):
         bar_y = p_y_min + bi * bar_spacing
         if bar_y > p_y_max + 0.01:
             break
-        in_hole = hy_min <= bar_y <= hy_max
-        if in_hole:
-            # Split around the ladder hole: left and right segments
-            len_left = hx_min - p_x_min
-            len_right = p_x_max - hx_max
-            if len_left > 0.05:
-                make_pipe(
-                    (p_x_min + 0.02, bar_y, plat_z),
-                    (hx_min - 0.02, bar_y, plat_z),
-                    radius=bar_r, material=MS, segs=6,
-                    name="Sep_Grat_X_{}".format(bar_idx))
-                bar_idx += 1
-            if len_right > 0.05:
-                make_pipe(
-                    (hx_max + 0.02, bar_y, plat_z),
-                    (p_x_max - 0.02, bar_y, plat_z),
-                    radius=bar_r, material=MS, segs=6,
-                    name="Sep_Grat_X_{}".format(bar_idx))
-                bar_idx += 1
-        else:
-            # Full bar across entire length
-            make_pipe(
-                (p_x_min + 0.02, bar_y, plat_z),
-                (p_x_max - 0.02, bar_y, plat_z),
-                radius=bar_r, material=MS, segs=6,
-                name="Sep_Grat_X_{}".format(bar_idx))
-            bar_idx += 1
+        make_pipe(
+            (p_x_min + 0.02, bar_y, plat_z),
+            (p_x_max - 0.02, bar_y, plat_z),
+            radius=bar_r, material=MS, segs=6,
+            name="Sep_Grat_X_{}".format(bar_idx))
+        bar_idx += 1
 
     # ── Toe plate (thin box around perimeter) ──
     toe_h = 0.08
@@ -414,30 +364,7 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
             (toe_t / 2, plat_w / 2, toe_h / 2),
             name="Sep_Plat_Toe_{}".format(x_name), material=MS)
 
-    # ── Hole frame: thick pipes around the ladder opening ──
-    # This creates a visible rim that connects grating to the ladder exit
-    frame_r = 0.025  # pipe radius for the frame
-    frame_z = plat_z + bar_r  # same height as grating bars
-    # Front edge of hole (Y = hy_max)
-    make_pipe(
-        (hx_min, hy_max, frame_z), (hx_max, hy_max, frame_z),
-        radius=frame_r, material=MS, segs=6,
-        name="Sep_HoleFrame_Front")
-    # Back edge of hole (Y = hy_min)
-    make_pipe(
-        (hx_min, hy_min, frame_z), (hx_max, hy_min, frame_z),
-        radius=frame_r, material=MS, segs=6,
-        name="Sep_HoleFrame_Back")
-    # Left edge (X = hx_min)
-    make_pipe(
-        (hx_min, hy_min, frame_z), (hx_min, hy_max, frame_z),
-        radius=frame_r, material=MS, segs=6,
-        name="Sep_HoleFrame_Left")
-    # Right edge (X = hx_max)
-    make_pipe(
-        (hx_max, hy_min, frame_z), (hx_max, hy_max, frame_z),
-        radius=frame_r, material=MS, segs=6,
-        name="Sep_HoleFrame_Right")
+    # (No hole frame — platform has no cutout, grating is continuous)
 
     # ── Railing posts (thin cylinders at ~1m intervals) ──
     post_r = 0.025
@@ -658,6 +585,27 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
             (lad_x + cage_rx, lad_y, cage_end_z),
             radius=top_r, material=MS, segs=6,
             name="Sep_Ladder_CageTopR_Back")
+
+        # ── Connectors: cage ends to railing posts ──
+        # Diagonal pipes from the left and right ends of the top cage ring
+        # to the nearest railing post ends on the front edge (p_y_max).
+        # This closes the gap between the cage and the platform railings.
+        conn_r = 0.018  # same as rail_radius
+        # Left connector: from left cage ring end to left railing segment end
+        # The closest left post on front edge is at x = opening_x - opening_half
+        post_x_left = opening_x - opening_half
+        make_pipe(
+            (lad_x - cage_rx, lad_y, cage_end_z),
+            (post_x_left, p_y_max, cage_end_z),
+            radius=conn_r, material=MS, segs=6,
+            name="Sep_Cage_Conn_L")
+        # Right connector: from right cage ring end to right railing segment start
+        post_x_right = opening_x + opening_half
+        make_pipe(
+            (lad_x + cage_rx, lad_y, cage_end_z),
+            (post_x_right, p_y_max, cage_end_z),
+            radius=conn_r, material=MS, segs=6,
+            name="Sep_Cage_Conn_R")
 
     # ═══════════════════════════════════════════════════════════
     # 6. SMALL DETAILS
