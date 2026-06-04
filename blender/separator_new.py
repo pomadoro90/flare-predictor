@@ -462,18 +462,13 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
 
     # Vertical connecting pipe from separator shell to PG base flange
     make_pipe(
-        (pg_x, pg_y, SZ + SR), (pg_x, pg_y, pg_z - 0.08),
+        (pg_x, pg_y, SZ + SR), (pg_x, pg_y, pg_z),
         radius=0.025, material=MS, segs=8,
         name="Sep_PG_ConnPipe")
 
-    # Nozzle / connection pipe from separator top
-    make_cylinder(
-        (pg_x, pg_y, pg_z - 0.04), 0.045, 0.08,
-        name="Sep_PG_Nozzle", material=MS, segs=12)
-
     # Flange at base of nozzle
     make_disc_flange(
-        (pg_x, pg_y, pg_z - 0.08), (0, 0, 1), 0.045,
+        (pg_x, pg_y, pg_z), (0, 0, 1), 0.025,
         name_prefix="Sep_PG_Base", flange_scale=1.5, material=MS)
 
     # Hex nut connector below pressure gauge dial
