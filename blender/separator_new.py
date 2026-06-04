@@ -434,18 +434,51 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
             name="Sep_LG_Flag_{}".format(fi),
             material=MY, segs=8)
 
-    # ── Pressure gauge stub with blind flange cap ──
+    # ── Pressure gauge assembly: nozzle, 3-way valve, dial ──
     pg_x = SX - SL * 0.15
     pg_y = SY + SR * 0.3     # slight Y-offset
     pg_z = SZ + SR + 0.35
-    # Stalk (short vertical pipe)
+
+    # Nozzle / connection pipe from separator top
     make_cylinder(
-        (pg_x, pg_y, pg_z - 0.05), 0.035, 0.10,
-        name="Sep_PG_Stalk", material=MS, segs=8)
-    # Blind flange cap on top of stalk
-    make_disc_flange(
-        (pg_x, pg_y, pg_z), (0, 0, 1), 0.035,
-        name_prefix="Sep_PG", flange_scale=1.5, material=MS)
+        (pg_x, pg_y, pg_z - 0.03), 0.018, 0.06,
+        name="Sep_PG_Nozzle", material=MS, segs=12)
+
+    # Three-way valve body and red L-handle
+    make_box(
+        (pg_x, pg_y, pg_z + 0.005), (0.0225, 0.0175, 0.0175),
+        name="Sep_PG_ValveBody", material=MY)
+    lever_z = pg_z + 0.005
+    make_pipe(
+        (pg_x - 0.025, pg_y, lever_z),
+        (pg_x - 0.085, pg_y, lever_z),
+        radius=0.006, material=MR, segs=8,
+        name="Sep_PG_ValveLever_H")
+    make_pipe(
+        (pg_x - 0.085, pg_y, lever_z),
+        (pg_x - 0.085, pg_y, lever_z + 0.03),
+        radius=0.006, material=MR, segs=8,
+        name="Sep_PG_ValveLever_V")
+
+    # Hex nut connector below pressure gauge dial
+    nut = make_cylinder(
+        (pg_x, pg_y, pg_z + 0.035), 0.012, 0.015,
+        name="Sep_PG_NutConnector", material=MS, segs=6)
+    bpy.context.view_layer.objects.active = nut
+    nut.select_set(True)
+    bpy.ops.object.shade_flat()
+
+    # Pressure gauge case, face, and needle
+    make_cylinder(
+        (pg_x, pg_y, pg_z + 0.055), 0.050, 0.030,
+        name="Sep_PG_DialCase", material=MM, segs=32)
+    make_cylinder(
+        (pg_x, pg_y, pg_z + 0.072), 0.044, 0.002,
+        name="Sep_PG_DialFace", material=MW, segs=32)
+    needle = make_box(
+        (pg_x, pg_y, pg_z + 0.074), (0.001, 0.019, 0.0005),
+        name="Sep_PG_Needle", material=MM)
+    needle.rotation_euler[2] = math_mod.radians(30)
 
     # ── Pipe stubs connecting to FlareGas route ──
     # Small horizontal pipe from top of separator toward the gas pipe route
