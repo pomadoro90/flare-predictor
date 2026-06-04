@@ -458,7 +458,7 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
     # ── Pressure gauge assembly: nozzle, valve, detailed dial ──
     pg_x = SX - SL * 0.15
     pg_y = SY + SR * 0.3     # slight Y-offset
-    pg_z = SZ + SR + 0.5
+    pg_z = SZ + SR + 0.8
 
     # Vertical connecting pipe from separator shell to PG base flange
     make_pipe(
@@ -554,13 +554,9 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
 
     needle_angle = math_mod.radians(-45)
     needle = make_box(
-        (needle_x, pg_y, dial_cz + 0.015), (0.003, 0.001, 0.08),
+        (needle_x, pg_y, dial_cz + 0.01), (0.003, 0.001, 0.06),
         name="Sep_PG_Needle", material=MM)
     needle.rotation_euler = dial_rotation(needle_angle)
-    needle_tail = make_box(
-        (needle_x, pg_y, dial_cz - 0.01), (0.004, 0.001, 0.02),
-        name="Sep_PG_NeedleTail", material=MM)
-    needle_tail.rotation_euler = dial_rotation(needle_angle)
     make_cylinder(
         (pivot_x, pg_y, dial_cz), 0.008, 0.003,
         rot=(0, math_mod.radians(-90), 0),
