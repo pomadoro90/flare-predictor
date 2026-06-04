@@ -407,7 +407,7 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
     # ── Cage dimensions (needed early for platform rail clipping) ──
     rail_spacing = 0.35
     cage_r = 0.40            # forward reach of the cage (Y radius)
-    cage_rx = rail_spacing / 2 + 0.05   # 0.225m — slightly wider than half ladder width
+    cage_rx = rail_spacing / 2          # cage X-radius matches ladder stringers (no side gap)
     cage_ry = cage_r                     # 0.40m  — forward reach
     cage_bar_r = 0.014       # thickness of cage bars
     cage_start_z = lad_z_bot + 0.5   # start ~0.5m above ground
