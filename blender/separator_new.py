@@ -98,7 +98,7 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
 
     def make_disc_flange(end_pos, direction_vec, radius, name_prefix,
                          flange_scale=1.5, material=MS):
-        """Create a blind flange assembly: hub, bored flange, cap, nuts, studs."""
+        """Create a blind flange assembly: bored flange, cap, nuts, studs."""
         flange_disc_radius = radius * 1.75
         flange_body_radius = radius * 1.9
         bore_radius = radius * 1.05
@@ -109,10 +109,9 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
         stud_radius = bolt_radius * 0.6
         stud_protrusion = bolt_radius * 0.8
         n_bolts = max(8, int(flange_disc_radius / (bolt_radius * 2.5)))
-        hub_height = flange_disc_radius * 0.6
         bottom_flange_thickness = 0.04
         blind_cap_thickness = 0.05
-        bore_depth = bottom_flange_thickness + hub_height * 0.3
+        bore_depth = bottom_flange_thickness
         raised_face_radius = radius * 1.1
         raised_face_thickness = 0.006
         bolt_hole_depth = bottom_flange_thickness + blind_cap_thickness + 0.004
@@ -126,22 +125,10 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
                 base += offset
             return (base.x, base.y, base.z)
 
-        hub_loc = (end_pos[0] + direction.x * (hub_height / 2),
-                   end_pos[1] + direction.y * (hub_height / 2),
-                   end_pos[2] + direction.z * (hub_height / 2))
-        bpy.ops.mesh.primitive_cone_add(
-            vertices=24, radius1=radius, radius2=flange_disc_radius,
-            depth=hub_height, location=hub_loc, rotation=rotation)
-        hub = bpy.context.active_object
-        hub.name = name_prefix + "_FlangeHub"
-        assign_mat(hub, material)
-        bpy.ops.object.shade_smooth()
-
-        bottom_flange_dist = hub_height + bottom_flange_thickness / 2
-        blind_cap_dist = (
-            hub_height + bottom_flange_thickness + blind_cap_thickness / 2)
-        cap_top_dist = hub_height + bottom_flange_thickness + blind_cap_thickness
-        bore_dist = hub_height + bottom_flange_thickness - bore_depth / 2
+        bottom_flange_dist = bottom_flange_thickness / 2
+        blind_cap_dist = bottom_flange_thickness + blind_cap_thickness / 2
+        cap_top_dist = bottom_flange_thickness + blind_cap_thickness
+        bore_dist = bottom_flange_thickness - bore_depth / 2
 
         bottom_flange = make_cylinder(
             point_along(bottom_flange_dist), flange_body_radius,
@@ -179,7 +166,7 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
                       local_y * (math_mod.sin(angle) * bolt_circle_radius))
 
             hole = make_cylinder(
-                point_along(hub_height + bolt_hole_depth / 2 - 0.002, offset),
+                point_along(bolt_hole_depth / 2 - 0.002, offset),
                 bolt_radius * 0.9, bolt_hole_depth,
                 name=name_prefix + "_BoltHole_" + str(i),
                 material=MM, segs=12)
