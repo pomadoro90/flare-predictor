@@ -300,17 +300,17 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
     plat_thick = 0.06
     rail_h = 0.90                # railing height
 
-    # Ladder coordinates (needed for hole and cage alignment)
-    lad_x = SX + SL * 0.15              # ladder X center (stringers along X)
-    lad_y = SY + SR + 0.10              # ladder Y position (on cylinder surface)
-    lad_z_top = plat_z                  # top of ladder = platform level (flush with grating)
-    lad_z_bot = GROUND_Z + 0.2          # above ground
-
-    # Platform boundaries
+    # Platform boundaries (computed first — ladder position depends on them)
     p_x_min = SX - plat_len / 2
     p_x_max = SX + plat_len / 2
     p_y_min = SY - plat_w / 2
     p_y_max = SY + plat_w / 2
+
+    # Ladder coordinates (aligned with front edge of platform grating)
+    lad_x = SX + SL * 0.15              # ladder X center (stringers along X)
+    lad_y = p_y_max                     # ladder Y = front edge of platform (was SY + SR + 0.10)
+    lad_z_top = plat_z                  # top of ladder = platform level (flush with grating)
+    lad_z_bot = GROUND_Z + 0.2          # above ground
 
     # No hole in the platform — grating is continuous under the ladder.
     # The cage sits above the platform surface and does NOT cut through it.
