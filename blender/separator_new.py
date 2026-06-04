@@ -98,21 +98,33 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
 
     def make_disc_flange(end_pos, direction_vec, radius, name_prefix,
                          flange_scale=1.5, material=MS):
-        """Create a weld-neck flange with raised face and hex bolting."""
-        flange_thickness = 0.04
-        face_thickness = 0.01
-        raised_face_thickness = 0.005
-        flange_disc_radius = radius * flange_scale
-        flange_body_radius = radius * (flange_scale + 0.15)
+        """Create a blind flange assembly: hub, bored flange, cap, nuts, studs."""
+        flange_disc_radius = radius * 1.75
+        flange_body_radius = radius * 1.9
+        bore_radius = radius * 1.05
+        bolt_circle_radius = flange_disc_radius * 0.82
+        bolt_radius = 0.012
+        nut_radius = bolt_radius * 1.8
+        nut_depth = bolt_radius * 1.5
+        stud_radius = bolt_radius * 0.6
+        stud_protrusion = bolt_radius * 0.8
+        n_bolts = max(8, int(flange_disc_radius / (bolt_radius * 2.5)))
         hub_height = flange_disc_radius * 0.6
-        bolt_circle_radius = flange_disc_radius * 0.85
-        bolt_radius = 0.008
-        bolt_depth = flange_thickness * 0.9
-        nut_radius = bolt_radius * 1.3
-        nut_depth = bolt_depth * 0.7
+        bottom_flange_thickness = 0.04
+        blind_cap_thickness = 0.05
+        bore_depth = bottom_flange_thickness + hub_height * 0.3
+        raised_face_radius = radius * 1.1
+        raised_face_thickness = 0.006
+        bolt_hole_depth = bottom_flange_thickness + blind_cap_thickness + 0.004
 
         direction = Vector(direction_vec).normalized()
         rotation = direction.to_track_quat('Z', 'Y').to_euler()
+
+        def point_along(dist, offset=None):
+            base = Vector(end_pos) + direction * dist
+            if offset is not None:
+                base += offset
+            return (base.x, base.y, base.z)
 
         hub_loc = (end_pos[0] + direction.x * (hub_height / 2),
                    end_pos[1] + direction.y * (hub_height / 2),
@@ -125,39 +137,34 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
         assign_mat(hub, material)
         bpy.ops.object.shade_smooth()
 
-        body_center_dist = hub_height + flange_thickness / 2
-        face_center_dist = hub_height + flange_thickness + face_thickness / 2
-        raised_face_center_dist = (
-            hub_height + flange_thickness + face_thickness +
-            raised_face_thickness / 2)
-        front_face_dist = (
-            hub_height + flange_thickness + face_thickness +
-            raised_face_thickness)
+        bottom_flange_dist = hub_height + bottom_flange_thickness / 2
+        blind_cap_dist = (
+            hub_height + bottom_flange_thickness + blind_cap_thickness / 2)
+        cap_top_dist = hub_height + bottom_flange_thickness + blind_cap_thickness
+        bore_dist = hub_height + bottom_flange_thickness - bore_depth / 2
 
-        body_loc = (end_pos[0] + direction.x * body_center_dist,
-                    end_pos[1] + direction.y * body_center_dist,
-                    end_pos[2] + direction.z * body_center_dist)
-        face_loc = (end_pos[0] + direction.x * face_center_dist,
-                    end_pos[1] + direction.y * face_center_dist,
-                    end_pos[2] + direction.z * face_center_dist)
-        raised_face_loc = (
-            end_pos[0] + direction.x * raised_face_center_dist,
-            end_pos[1] + direction.y * raised_face_center_dist,
-            end_pos[2] + direction.z * raised_face_center_dist)
+        bottom_flange = make_cylinder(
+            point_along(bottom_flange_dist), flange_body_radius,
+            bottom_flange_thickness,
+            name=name_prefix + "_BottomFlange", material=material, segs=32)
+        bottom_flange.rotation_euler = rotation
 
-        body = make_cylinder(
-            body_loc, flange_body_radius, flange_thickness,
-            name=name_prefix + "_Flange", material=material, segs=24)
-        body.rotation_euler = rotation
+        bore = make_cylinder(
+            point_along(bore_dist), bore_radius, bore_depth,
+            name=name_prefix + "_BottomFlangeBore", material=MM, segs=24)
+        bore.rotation_euler = rotation
 
-        face = make_cylinder(
-            face_loc, flange_disc_radius, face_thickness,
-            name=name_prefix + "_FlangeFace", material=material, segs=24)
-        face.rotation_euler = rotation
+        blind_cap = make_cylinder(
+            point_along(blind_cap_dist), flange_body_radius,
+            blind_cap_thickness,
+            name=name_prefix + "_BlindCap", material=material, segs=32)
+        blind_cap.rotation_euler = rotation
 
-        raised_face = make_cylinder(
-            raised_face_loc, radius * 1.1, raised_face_thickness,
-            name=name_prefix + "_RaisedFace", material=material, segs=24)
+        raised_face = make_torus(
+            point_along(cap_top_dist + raised_face_thickness / 2),
+            raised_face_radius, raised_face_thickness,
+            name=name_prefix + "_RaisedFaceRing", material=material,
+            m_segs=32, r_segs=8)
         raised_face.rotation_euler = rotation
 
         reference = Vector((0, 0, 1))
@@ -166,34 +173,44 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
         local_x = direction.cross(reference).normalized()
         local_y = direction.cross(local_x).normalized()
 
-        for i in range(8):
-            angle = i * 2 * math_mod.pi / 8
+        for i in range(n_bolts):
+            angle = i * 2 * math_mod.pi / n_bolts
             offset = (local_x * (math_mod.cos(angle) * bolt_circle_radius) +
                       local_y * (math_mod.sin(angle) * bolt_circle_radius))
-            bolt_center_dist = front_face_dist + bolt_depth / 2
-            nut_center_dist = hub_height - nut_depth / 2
-            bolt_loc = (end_pos[0] + direction.x * bolt_center_dist + offset.x,
-                        end_pos[1] + direction.y * bolt_center_dist + offset.y,
-                        end_pos[2] + direction.z * bolt_center_dist + offset.z)
-            nut_loc = (end_pos[0] + direction.x * nut_center_dist + offset.x,
-                       end_pos[1] + direction.y * nut_center_dist + offset.y,
-                       end_pos[2] + direction.z * nut_center_dist + offset.z)
 
-            bpy.ops.mesh.primitive_cylinder_add(
-                vertices=6, radius=bolt_radius, depth=bolt_depth,
-                location=bolt_loc, rotation=rotation)
-            bolt = bpy.context.active_object
-            bolt.name = name_prefix + "_FlangeBolt_" + str(i)
-            assign_mat(bolt, material)
-            bolt.rotation_euler = rotation
+            hole = make_cylinder(
+                point_along(hub_height + bolt_hole_depth / 2 - 0.002, offset),
+                bolt_radius * 0.9, bolt_hole_depth,
+                name=name_prefix + "_BoltHole_" + str(i),
+                material=MM, segs=12)
+            hole.rotation_euler = rotation
 
             bpy.ops.mesh.primitive_cylinder_add(
                 vertices=6, radius=nut_radius, depth=nut_depth,
-                location=nut_loc, rotation=rotation)
+                location=point_along(cap_top_dist + nut_depth / 2, offset),
+                rotation=rotation)
             nut = bpy.context.active_object
             nut.name = name_prefix + "_FlangeNut_" + str(i)
             assign_mat(nut, material)
             nut.rotation_euler = rotation
+            bevel = nut.modifiers.new(name="NutTopEdgeBevel", type='BEVEL')
+            bevel.width = min(bolt_radius * 0.25, nut_depth * 0.25)
+            bevel.segments = 1
+            bevel.affect = 'EDGES'
+            nut.modifiers.new(name="NutWeightedNormals", type='WEIGHTED_NORMAL')
+
+            stud_dist = cap_top_dist + nut_depth + stud_protrusion / 2
+            stud = make_cylinder(
+                point_along(stud_dist, offset), stud_radius,
+                stud_protrusion,
+                name=name_prefix + "_Stud_" + str(i),
+                material=material, segs=12)
+            stud.rotation_euler = rotation
+            make_uvsphere(
+                point_along(cap_top_dist + nut_depth + stud_protrusion, offset),
+                stud_radius,
+                name=name_prefix + "_StudTop_" + str(i),
+                material=material, segs=12)
 
     def make_nozzle(pos, radius, length, direction_vec, name_prefix,
                     flange_scale=1.5, flange_r=0.04, material=MS):
