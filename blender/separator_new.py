@@ -509,8 +509,8 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
     label_x = dial_cx - 0.038
     needle_x = dial_cx - 0.039
     pivot_x = dial_cx - 0.040
-    arc_start = -135
-    arc_end = 135
+    arc_start = -45
+    arc_end = 225
 
     def dial_rotation(angle):
         return (angle - math_mod.radians(90), 0, 0)
@@ -535,7 +535,7 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
             name="Sep_PG_TickS_{}".format(i), material=MM)
         tick.rotation_euler = dial_rotation(angle)
 
-    gauge_labels = [(0, -135), (0.4, -75), (0.8, -15), (1.2, 45), (1.6, 105)]
+    gauge_labels = [(0, -45), (0.4, 15), (0.8, 75), (1.2, 135), (1.6, 195)]
     for val, angle_deg in gauge_labels:
         angle = math_mod.radians(angle_deg)
         lr = 0.08
@@ -555,7 +555,7 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
         (label_x, pg_y, dial_cz - 0.02), (0.01, 0.001, 0.004),
         name="Sep_PG_LabelAccuracy", material=MM)
 
-    needle_angle = math_mod.radians(-135)
+    needle_angle = math_mod.radians(-45)
     needle = make_box(
         (needle_x, pg_y, dial_cz + 0.015), (0.003, 0.001, 0.08),
         name="Sep_PG_Needle", material=MM)
