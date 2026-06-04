@@ -458,7 +458,7 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
     # ── Pressure gauge assembly: nozzle, valve, detailed dial ──
     pg_x = SX - SL * 0.15
     pg_y = SY + SR * 0.3     # slight Y-offset
-    pg_z = SZ + SR + 0.65
+    pg_z = SZ + SR + 0.5
 
     # Vertical connecting pipe from separator shell to PG base flange
     make_pipe(
@@ -485,7 +485,7 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
     bpy.ops.object.shade_flat()
 
     make_pipe(
-        (pg_x, pg_y, pg_z + 0.09), (pg_x, pg_y, pg_z + 0.10),
+        (pg_x, pg_y, pg_z + 0.05), (pg_x, pg_y, pg_z + 0.10),
         radius=0.015, material=MS, segs=8,
         name="Sep_PG_StemPipe")
 
@@ -535,25 +535,22 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
             name="Sep_PG_TickS_{}".format(i), material=MM)
         tick.rotation_euler = dial_rotation(angle)
 
-    gauge_labels = [(0, -45), (0.4, 15), (0.8, 75), (1.2, 135), (1.6, 195)]
-    for val, angle_deg in gauge_labels:
+    text_values = [("0", -45), ("20", 9), ("40", 63), ("60", 117), ("80", 171), ("100", 225)]
+    for txt_str, angle_deg in text_values:
         angle = math_mod.radians(angle_deg)
-        lr = 0.08
+        lr = 0.07
         ly = pg_y + lr * math_mod.cos(angle)
         lz = dial_cz + lr * math_mod.sin(angle)
-        make_box(
-            (label_x, ly, lz), (0.008, 0.001, 0.004),
-            name="Sep_PG_Label_{}".format(int(val * 10)), material=MM)
-
-    make_box(
-        (label_x, pg_y, dial_cz), (0.03, 0.001, 0.005),
-        name="Sep_PG_LabelModel", material=MM)
-    make_box(
-        (label_x, pg_y, dial_cz + 0.06), (0.02, 0.001, 0.005),
-        name="Sep_PG_LabelUnit", material=MM)
-    make_box(
-        (label_x, pg_y, dial_cz - 0.02), (0.01, 0.001, 0.004),
-        name="Sep_PG_LabelAccuracy", material=MM)
+        bpy.ops.object.text_add(location=(label_x, ly, lz))
+        txt_obj = bpy.context.active_object
+        txt_obj.name = "Sep_PG_Text_" + txt_str
+        txt_obj.data.body = txt_str
+        txt_obj.data.size = 0.012
+        txt_obj.data.align_x = 'CENTER'
+        txt_obj.data.align_y = 'CENTER'
+        txt_obj.rotation_euler = (0, math_mod.radians(-90), 0)
+        assign_mat(txt_obj, MM)
+        bpy.ops.object.shade_flat()
 
     needle_angle = math_mod.radians(-45)
     needle = make_box(
