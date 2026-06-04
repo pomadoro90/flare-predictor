@@ -458,7 +458,7 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
     # ── Pressure gauge assembly: nozzle, valve, detailed dial ──
     pg_x = SX - SL * 0.15
     pg_y = SY + SR * 0.3     # slight Y-offset
-    pg_z = SZ + SR + 0.8
+    pg_z = SZ + SR + 1.0
 
     # Vertical connecting pipe from separator shell to PG base flange
     make_pipe(
