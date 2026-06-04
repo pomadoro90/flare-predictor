@@ -191,11 +191,7 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
             nut.name = name_prefix + "_FlangeNut_" + str(i)
             assign_mat(nut, material)
             nut.rotation_euler = rotation
-            bevel = nut.modifiers.new(name="NutTopEdgeBevel", type='BEVEL')
-            bevel.width = min(bolt_radius * 0.25, nut_depth * 0.25)
-            bevel.segments = 1
-            bevel.affect = 'EDGES'
-            nut.modifiers.new(name="NutWeightedNormals", type='WEIGHTED_NORMAL')
+            bpy.ops.object.shade_flat()
 
             stud_dist = cap_top_dist + nut_depth + stud_protrusion / 2
             stud = make_cylinder(
@@ -425,6 +421,9 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
         (lg_x, lg_y, lg_z_bottom), (lg_x, lg_y, lg_z_top),
         radius=0.03, material=MS, segs=8,
         name="Sep_LG_Pipe")
+    make_disc_flange(
+        (lg_x, lg_y, lg_z_top), (0, 0, 1), 0.03,
+        name_prefix="Sep_LG", flange_scale=1.5, material=MS)
     # Flag indicators at intervals (small yellow cylinders)
     n_flags = 6
     for fi in range(n_flags):
@@ -443,6 +442,9 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
     make_cylinder(
         (pg_x, pg_y, pg_z - 0.10), 0.035, 0.18,
         name="Sep_PG_Stalk", material=MS, segs=8)
+    make_disc_flange(
+        (pg_x, pg_y, pg_z - 0.10), (0, 0, 1), 0.035,
+        name_prefix="Sep_PG", flange_scale=1.5, material=MS)
     # Gauge body (yellow)
     make_cylinder(
         (pg_x, pg_y, pg_z), 0.05, 0.06,
