@@ -434,51 +434,102 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
             name="Sep_LG_Flag_{}".format(fi),
             material=MY, segs=8)
 
-    # ── Pressure gauge assembly: nozzle, 3-way valve, dial ──
+    # ── Pressure gauge assembly: nozzle, valve, detailed dial ──
     pg_x = SX - SL * 0.15
     pg_y = SY + SR * 0.3     # slight Y-offset
     pg_z = SZ + SR + 0.35
 
     # Nozzle / connection pipe from separator top
     make_cylinder(
-        (pg_x, pg_y, pg_z - 0.03), 0.018, 0.06,
+        (pg_x, pg_y, pg_z - 0.04), 0.045, 0.08,
         name="Sep_PG_Nozzle", material=MS, segs=12)
+
+    # Flange at base of nozzle
+    make_disc_flange(
+        (pg_x, pg_y, pg_z - 0.08), (0, 0, 1), 0.045,
+        name_prefix="Sep_PG_Base", flange_scale=1.5, material=MS)
 
     # Three-way valve body and red L-handle
     make_box(
-        (pg_x, pg_y, pg_z + 0.005), (0.0225, 0.0175, 0.0175),
+        (pg_x, pg_y, pg_z + 0.02), (0.06, 0.05, 0.05),
         name="Sep_PG_ValveBody", material=MY)
-    lever_z = pg_z + 0.005
+    lever_z = pg_z + 0.02
     make_pipe(
-        (pg_x - 0.025, pg_y, lever_z),
-        (pg_x - 0.085, pg_y, lever_z),
-        radius=0.006, material=MR, segs=8,
+        (pg_x - 0.06, pg_y, lever_z),
+        (pg_x - 0.15, pg_y, lever_z),
+        radius=0.015, material=MR, segs=8,
         name="Sep_PG_ValveLever_H")
     make_pipe(
-        (pg_x - 0.085, pg_y, lever_z),
-        (pg_x - 0.085, pg_y, lever_z + 0.03),
-        radius=0.006, material=MR, segs=8,
+        (pg_x - 0.15, pg_y, lever_z),
+        (pg_x - 0.15, pg_y, lever_z + 0.07),
+        radius=0.015, material=MR, segs=8,
         name="Sep_PG_ValveLever_V")
 
     # Hex nut connector below pressure gauge dial
     nut = make_cylinder(
-        (pg_x, pg_y, pg_z + 0.035), 0.012, 0.015,
+        (pg_x, pg_y, pg_z + 0.07), 0.025, 0.035,
         name="Sep_PG_NutConnector", material=MS, segs=6)
     bpy.context.view_layer.objects.active = nut
     nut.select_set(True)
     bpy.ops.object.shade_flat()
 
-    # Pressure gauge case, face, and needle
+    # Pressure gauge case, bezel, face, scale, and needle
     make_cylinder(
-        (pg_x, pg_y, pg_z + 0.055), 0.050, 0.030,
-        name="Sep_PG_DialCase", material=MM, segs=32)
+        (pg_x, pg_y, pg_z + 0.12), 0.125, 0.055,
+        name="Sep_PG_DialCase", material=MM, segs=48)
+    bezel = make_cylinder(
+        (pg_x, pg_y, pg_z + 0.149), 0.128, 0.008,
+        name="Sep_PG_Bezel", material=MS, segs=48)
+    bpy.context.view_layer.objects.active = bezel
+    bezel.select_set(True)
+    bpy.ops.object.shade_flat()
     make_cylinder(
-        (pg_x, pg_y, pg_z + 0.072), 0.044, 0.002,
-        name="Sep_PG_DialFace", material=MW, segs=32)
+        (pg_x, pg_y, pg_z + 0.150), 0.115, 0.003,
+        name="Sep_PG_DialFace", material=MW, segs=48)
+
+    dial_cx = pg_x
+    dial_cy = pg_y
+    dial_face_z = pg_z + 0.152
+    arc_start = -135
+    arc_end = 135
+
+    for i in range(10):
+        angle = math_mod.radians(arc_start + i * (arc_end - arc_start) / 9)
+        tick_r = 0.10
+        tx = dial_cx + tick_r * math_mod.cos(angle)
+        ty = dial_cy + tick_r * math_mod.sin(angle)
+        tick = make_box(
+            (tx, ty, dial_face_z), (0.001, 0.015, 0.001),
+            name="Sep_PG_TickM_{}".format(i), material=MM)
+        tick.rotation_euler[2] = angle
+
+    for i in range(40):
+        angle = math_mod.radians(arc_start + i * (arc_end - arc_start) / 39)
+        tick_r = 0.105
+        tx = dial_cx + tick_r * math_mod.cos(angle)
+        ty = dial_cy + tick_r * math_mod.sin(angle)
+        tick = make_box(
+            (tx, ty, dial_face_z), (0.0005, 0.008, 0.001),
+            name="Sep_PG_TickS_{}".format(i), material=MM)
+        tick.rotation_euler[2] = angle
+
+    gauge_labels = [(0, -135), (0.4, -75), (0.8, -15), (1.2, 45), (1.6, 105)]
+    for val, angle_deg in gauge_labels:
+        angle = math_mod.radians(angle_deg)
+        lr = 0.08
+        lx = dial_cx + lr * math_mod.cos(angle)
+        ly = dial_cy + lr * math_mod.sin(angle)
+        make_box(
+            (lx, ly, dial_face_z + 0.001), (0.008, 0.004, 0.001),
+            name="Sep_PG_Label_{}".format(int(val * 10)), material=MM)
+
     needle = make_box(
-        (pg_x, pg_y, pg_z + 0.074), (0.001, 0.019, 0.0005),
+        (pg_x, pg_y, pg_z + 0.153), (0.002, 0.09, 0.001),
         name="Sep_PG_Needle", material=MM)
     needle.rotation_euler[2] = math_mod.radians(30)
+    make_cylinder(
+        (pg_x, pg_y, pg_z + 0.154), 0.008, 0.003,
+        name="Sep_PG_PivotDot", material=MM, segs=16)
 
     # ── Pipe stubs connecting to FlareGas route ──
     # Small horizontal pipe from top of separator toward the gas pipe route
