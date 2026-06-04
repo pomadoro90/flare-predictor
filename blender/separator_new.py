@@ -418,11 +418,11 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
     lg_z_top = SZ + SR * 0.15
     # Vertical pipe
     make_pipe(
-        (lg_x, lg_y, lg_z_bottom), (lg_x, lg_y, lg_z_top),
+        (lg_x, lg_y, lg_z_bottom), (lg_x, lg_y, lg_z_top + 0.08),
         radius=0.03, material=MS, segs=8,
         name="Sep_LG_Pipe")
     make_disc_flange(
-        (lg_x, lg_y, lg_z_top), (0, 0, 1), 0.03,
+        (lg_x, lg_y, lg_z_top + 0.08), (0, 0, 1), 0.03,
         name_prefix="Sep_LG", flange_scale=1.5, material=MS)
     # Flag indicators at intervals (small yellow cylinders)
     n_flags = 6
@@ -443,7 +443,7 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
         (pg_x, pg_y, pg_z - 0.10), 0.035, 0.18,
         name="Sep_PG_Stalk", material=MS, segs=8)
     make_disc_flange(
-        (pg_x, pg_y, pg_z - 0.10), (0, 0, 1), 0.035,
+        (pg_x, pg_y, pg_z - 0.19), (0, 0, 1), 0.035,
         name_prefix="Sep_PG", flange_scale=1.5, material=MS)
     # Gauge body (yellow)
     make_cylinder(
@@ -453,17 +453,6 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
     make_cylinder(
         (pg_x, pg_y, pg_z + 0.045), 0.065, 0.015,
         name="Sep_PG_Face", material=MM, segs=12)
-
-    # ── Instrument mounting brackets (small cubes on cylinder surface) ──
-    bracket_positions = [
-        (SX - SL * 0.2, SY + SR * 0.7, SZ),      # left side
-        (SX + SL * 0.2, SY + SR * 0.7, SZ),      # right side
-        (SX, SY + SR * 0.7, SZ + SR * 0.5),      # top-side
-    ]
-    for bi, (bx, by, bz) in enumerate(bracket_positions):
-        make_box(
-            (bx, by, bz), (0.06, 0.04, 0.04),
-            name="Sep_Bracket_{}".format(bi), material=MS)
 
     # ── Pipe stubs connecting to FlareGas route ──
     # Small horizontal pipe from top of separator toward the gas pipe route
