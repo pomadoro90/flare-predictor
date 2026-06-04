@@ -130,22 +130,33 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
         cap_top_dist = bottom_flange_thickness + blind_cap_thickness
         bore_dist = bottom_flange_thickness - bore_depth / 2
 
-        bottom_flange = make_cylinder(
-            point_along(bottom_flange_dist), flange_body_radius,
-            bottom_flange_thickness,
-            name=name_prefix + "_BottomFlange", material=material, segs=32)
+        # --- Bottom flange disc: flat shading for crisp 90° edges ---
+        bpy.ops.mesh.primitive_cylinder_add(
+            vertices=48, radius=flange_body_radius,
+            depth=bottom_flange_thickness,
+            location=point_along(bottom_flange_dist))
+        bottom_flange = bpy.context.active_object
+        bottom_flange.name = name_prefix + "_BottomFlange"
         bottom_flange.rotation_euler = rotation
+        assign_mat(bottom_flange, material)
+        # Flat shading = no smooth vertex normals = sharp 90° edges
+        bpy.ops.object.shade_flat()
 
         bore = make_cylinder(
             point_along(bore_dist), bore_radius, bore_depth,
             name=name_prefix + "_BottomFlangeBore", material=MM, segs=24)
         bore.rotation_euler = rotation
 
-        blind_cap = make_cylinder(
-            point_along(blind_cap_dist), flange_body_radius,
-            blind_cap_thickness,
-            name=name_prefix + "_BlindCap", material=material, segs=32)
+        # --- Blind cap disc: flat shading for crisp 90° edges ---
+        bpy.ops.mesh.primitive_cylinder_add(
+            vertices=48, radius=flange_body_radius,
+            depth=blind_cap_thickness,
+            location=point_along(blind_cap_dist))
+        blind_cap = bpy.context.active_object
+        blind_cap.name = name_prefix + "_BlindCap"
         blind_cap.rotation_euler = rotation
+        assign_mat(blind_cap, material)
+        bpy.ops.object.shade_flat()
 
         raised_face = make_torus(
             point_along(cap_top_dist + raised_face_thickness / 2),
