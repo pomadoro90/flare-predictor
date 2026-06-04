@@ -53,6 +53,8 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
             obj.rotation_euler = (math_mod.radians(-90), 0, 0)
         elif normal_axis == 'X':
             obj.rotation_euler = (0, math_mod.radians(90), 0)
+        elif normal_axis == 'neg_X':
+            obj.rotation_euler = (0, math_mod.radians(-90), 0)
         # else Z: no rotation needed
         obj.location = loc
         return obj
@@ -498,7 +500,7 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
         name="Sep_PG_FrontBezel", material=MM, segs=48)
     dial_face = make_circle_disk(
         (pg_x - 0.036, pg_y, pg_z + 0.12), 0.118,
-        normal_axis='X', name="Sep_PG_DialFace", material=MW, segs=48)
+        normal_axis='neg_X', name="Sep_PG_DialFace", material=MW, segs=48)
     dial_face.data.materials[0].diffuse_color = (1.0, 1.0, 1.0, 1.0)
 
     dial_cx = pg_x
@@ -511,7 +513,7 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
     arc_end = 135
 
     def dial_rotation(angle):
-        return (0, 0, math_mod.radians(90) - angle)
+        return (angle - math_mod.radians(90), 0, 0)
 
     for i in range(10):
         angle = math_mod.radians(arc_start + i * (arc_end - arc_start) / 9)
