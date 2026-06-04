@@ -152,6 +152,12 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
         joined = bpy.context.active_object
         joined.name = name
         joined.data.name = name + "_data"
+        # Merge overlapping vertices at segment junctions and recalculate normals
+        bpy.ops.object.mode_set(mode='EDIT')
+        bpy.ops.mesh.select_all(action='SELECT')
+        bpy.ops.mesh.remove_doubles(threshold=0.001)
+        bpy.ops.mesh.normals_make_consistent(inside=False)
+        bpy.ops.object.mode_set(mode='OBJECT')
         bpy.ops.object.shade_smooth()
         bpy.ops.object.select_all(action='DESELECT')
         return joined
@@ -474,12 +480,12 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
             make_pipe(
                 (lad_x - cage_rx, p_y_max, rh),
                 (opening_x - opening_half, p_y_max, rh),
-                radius=rail_radius, material=MS, segs=6,
+                radius=0.022, material=MS, segs=6,
                 name="Sep_Cage_RailConn_L_{}".format(rail_tag))
             make_pipe(
                 (opening_x + opening_half, p_y_max, rh),
                 (lad_x + cage_rx, p_y_max, rh),
-                radius=rail_radius, material=MS, segs=6,
+                radius=0.022, material=MS, segs=6,
                 name="Sep_Cage_RailConn_R_{}".format(rail_tag))
         # Back rail (solid, no opening)
         make_pipe(
