@@ -460,52 +460,58 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
     pg_y = SY + SR * 0.3     # slight Y-offset
     pg_z = SZ + SR + 1.0
 
-    # Vertical connecting pipe from separator shell to PG base flange
+    # Flange anchor: all above-flange elements positioned relative to flange_top
+    flange_z = pg_z - 0.08
+    flange_top = flange_z + 0.10    # flange body 0.04 + cap 0.05 + raised face 0.006 + margin
+
+    # Vertical connecting pipe from separator shell to flange base
     make_pipe(
-        (pg_x, pg_y, SZ + SR), (pg_x, pg_y, pg_z - 0.08),
+        (pg_x, pg_y, SZ + SR), (pg_x, pg_y, flange_z),
         radius=0.025, material=MS, segs=8,
         name="Sep_PG_ConnPipe")
 
-    # Flange at base of riser pipe
+    # Flange at junction
     make_disc_flange(
-        (pg_x, pg_y, pg_z - 0.08), (0, 0, 1), 0.045,
+        (pg_x, pg_y, flange_z), (0, 0, 1), 0.045,
         name_prefix="Sep_PG_Base", flange_scale=1.5, material=MS)
 
-    # Visible pipe section between flange and gauge (same diameter as ConnPipe)
+    # Riser pipe: visible section from flange top to gauge (same dia as ConnPipe)
+    riser_top = flange_top + 0.12
     make_pipe(
-        (pg_x, pg_y, pg_z), (pg_x, pg_y, pg_z + 0.05),
+        (pg_x, pg_y, flange_top), (pg_x, pg_y, riser_top),
         radius=0.025, material=MS, segs=8,
         name="Sep_PG_RiserPipe")
 
     # Hex nut connector below pressure gauge dial
     nut = make_cylinder(
-        (pg_x, pg_y, pg_z + 0.07), 0.025, 0.035,
+        (pg_x, pg_y, riser_top + 0.02), 0.025, 0.035,
         name="Sep_PG_NutConnector", material=MM, segs=6)
     bpy.context.view_layer.objects.active = nut
     nut.select_set(True)
     bpy.ops.object.shade_flat()
 
     make_pipe(
-        (pg_x, pg_y, pg_z + 0.05), (pg_x, pg_y, pg_z + 0.10),
+        (pg_x, pg_y, riser_top), (pg_x, pg_y, riser_top + 0.04),
         radius=0.015, material=MS, segs=8,
         name="Sep_PG_StemPipe")
 
     # Pressure gauge case, bezel, face, scale, and needle
+    dial_z = riser_top + 0.06
     make_cylinder(
-        (pg_x, pg_y, pg_z + 0.12), 0.125, 0.06,
+        (pg_x, pg_y, dial_z), 0.125, 0.06,
         rot=(0, math_mod.radians(-90), 0),
         name="Sep_PG_DialCase", material=MM, segs=48)
     bezel = make_cylinder(
-        (pg_x - 0.032, pg_y, pg_z + 0.12), 0.128, 0.006,
+        (pg_x - 0.032, pg_y, dial_z), 0.128, 0.006,
         rot=(0, math_mod.radians(-90), 0),
         name="Sep_PG_FrontBezel", material=MM, segs=48)
     dial_face = make_circle_disk(
-        (pg_x - 0.036, pg_y, pg_z + 0.12), 0.118,
+        (pg_x - 0.036, pg_y, dial_z), 0.118,
         normal_axis='neg_X', name="Sep_PG_DialFace", material=MW, segs=48)
     dial_face.data.materials[0].diffuse_color = (1.0, 1.0, 1.0, 1.0)
 
     dial_cx = pg_x
-    dial_cz = pg_z + 0.12
+    dial_cz = dial_z
     tick_x = dial_cx - 0.037
     label_x = dial_cx - 0.038
     needle_x = dial_cx - 0.039
