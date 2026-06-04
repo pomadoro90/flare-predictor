@@ -814,31 +814,6 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
                 ring_pts, radius=cage_bar_r, material=MS,
                 name="Sep_Ladder_CageR_" + str(ri))
 
-        # ── Top closing ring (thicker curve tube, split for ladder access gap) ──
-        top_r = cage_bar_r * 2
-        gap_half = 0.4
-
-        def make_top_ring_arc(start_angle, end_angle, name):
-            arc_span = abs(start_angle - end_angle)
-            arc_pts = []
-            arc_steps = max(4, int(n_arc_pts * arc_span / math_mod.pi))
-            for si in range(arc_steps + 1):
-                t = si / arc_steps
-                angle = start_angle + (end_angle - start_angle) * t
-                px = lad_x + math_mod.cos(angle) * cage_rx
-                py = lad_y + math_mod.sin(angle) * cage_ry
-                arc_pts.append((px, py, cage_end_z))
-            make_curve_tube(
-                arc_pts, radius=top_r, material=MS,
-                name=name)
-
-        make_top_ring_arc(
-            math_mod.pi, math_mod.pi / 2 + gap_half,
-            "Sep_Ladder_CageTopR_L")
-        make_top_ring_arc(
-            math_mod.pi / 2 - gap_half, 0.0,
-            "Sep_Ladder_CageTopR_R")
-
     # ═══════════════════════════════════════════════════════════
     # 6. SMALL DETAILS
     # ═══════════════════════════════════════════════════════════
@@ -853,24 +828,46 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
             (sx_s, sy_s, sz_s), s_r, s_h,
             name=s_name, material=MR, segs=12)
 
-    # ── L-shaped support brackets under platform (angle iron, 4 total) ──
-    # Each bracket: vertical leg connects to cylinder surface, horizontal leg supports platform
-    bracket_thick = 0.025
-    bracket_vert_h = 0.20   # height of vertical leg
-    bracket_horiz_w = 0.10  # width of horizontal leg
-    bracket_len = 0.25      # length along cylinder axis
+    # ── Platform support beams and diagonal shell braces ──
+    beam_w = 0.15
+    beam_h = 0.10
+    beam_len = p_x_max - p_x_min
+    beam_z = plat_z - beam_h / 2
+    beam_y_positions = [SY - SR * 0.30, SY + SR * 0.30]
 
-    for side_sgn, side_name in [(-1, "L"), (1, "R")]:
-        bracket_x_positions = [SX - plat_len * 0.25, SX + plat_len * 0.25]
-        for xi, x_br in enumerate(bracket_x_positions):
-            y_br = SY + side_sgn * SR * 0.65
-            # Vertical leg (connects to cylinder surface)
-            make_box(
-                (x_br, y_br, plat_z - bracket_vert_h / 2),
-                (bracket_len / 2, bracket_thick / 2, bracket_vert_h / 2),
-                name="Sep_Plat_Bracket_{}_{}_V".format(side_name, xi), material=MS)
-            # Horizontal leg (supports platform from below)
-            make_box(
-                (x_br, y_br + side_sgn * bracket_horiz_w / 2, plat_z - bracket_thick / 2),
-                (bracket_len / 2, bracket_horiz_w / 2, bracket_thick / 2),
-                name="Sep_Plat_Bracket_{}_{}_H".format(side_name, xi), material=MS)
+    for bi, beam_y in enumerate(beam_y_positions):
+        make_box(
+            (SX, beam_y, beam_z),
+            (beam_len / 2, beam_w / 2, beam_h / 2),
+            name="Sep_Plat_SupportBeam_{}".format(bi), material=MS)
+
+    def make_square_brace(p1, p2, width, name):
+        start = Vector(p1)
+        end = Vector(p2)
+        span = end - start
+        length = span.length
+        if length < 0.001:
+            return None
+        bpy.ops.mesh.primitive_cube_add(location=((p1[0] + p2[0]) / 2,
+                                                  (p1[1] + p2[1]) / 2,
+                                                  (p1[2] + p2[2]) / 2))
+        obj = bpy.context.active_object
+        obj.name = name
+        obj.scale = (length / 2, width / 2, width / 2)
+        obj.rotation_euler = span.to_track_quat('X', 'Z').to_euler()
+        assign_mat(obj, MS)
+        bpy.ops.object.shade_smooth()
+        return obj
+
+    brace_w = 0.05
+    brace_x_positions = [SX - plat_len * 0.25, SX + plat_len * 0.25]
+    shell_y_offset = SR * 0.72
+    shell_z = SZ + math_mod.sqrt(max(0.0, SR * SR - shell_y_offset * shell_y_offset))
+    for side_sgn, side_name, y_edge in [(-1, "L", p_y_min), (1, "R", p_y_max)]:
+        shell_y = SY + side_sgn * shell_y_offset
+        for xi, x_br in enumerate(brace_x_positions):
+            make_square_brace(
+                (x_br, y_edge, plat_z - plat_thick / 2),
+                (x_br, shell_y, shell_z),
+                brace_w,
+                "Sep_Plat_DiagBrace_{}_{}".format(side_name, xi))
