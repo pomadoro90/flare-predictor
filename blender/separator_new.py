@@ -38,6 +38,25 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
         obj.data.materials.clear()
         obj.data.materials.append(mat)
 
+    def make_circle_disk(loc, radius, normal_axis='Y', name="Disk",
+                         material=MS, segs=48):
+        """Create a flat circle mesh facing along the specified axis."""
+        # Create in XY plane (normal +Z), then rotate to desired axis
+        bpy.ops.mesh.primitive_circle_add(
+            vertices=segs, radius=radius, fill_type='NGON',
+            location=(0, 0, 0))
+        obj = bpy.context.active_object
+        obj.name = name
+        assign_mat(obj, material)
+        bpy.ops.object.shade_flat()
+        if normal_axis == 'Y':
+            obj.rotation_euler = (math_mod.radians(-90), 0, 0)
+        elif normal_axis == 'X':
+            obj.rotation_euler = (0, math_mod.radians(90), 0)
+        # else Z: no rotation needed
+        obj.location = loc
+        return obj
+
     def make_cylinder(loc, radius, depth, rot=(0, 0, 0), name="Cyl",
                       material=MS, segs=20):
         bpy.ops.mesh.primitive_cylinder_add(
@@ -485,78 +504,82 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
 
     # Pressure gauge case, bezel, face, scale, and needle
     make_cylinder(
-        (pg_x, pg_y, pg_z + 0.12), 0.125, 0.055,
+        (pg_x, pg_y, pg_z + 0.12), 0.125, 0.06,
+        rot=(math_mod.radians(-90), 0, 0),
         name="Sep_PG_DialCase", material=MM, segs=48)
-    make_cylinder(
-        (pg_x, pg_y - 0.063, pg_z + 0.09), 0.004, 0.006,
-        rot=(math_mod.radians(90), 0, 0),
-        name="Sep_PG_DrainHole", material=MM, segs=8)
     bezel = make_cylinder(
-        (pg_x, pg_y, pg_z + 0.149), 0.128, 0.008,
-        name="Sep_PG_Bezel", material=MM, segs=48)
-    make_cylinder(
-        (pg_x, pg_y, pg_z + 0.150), 0.115, 0.003,
-        name="Sep_PG_DialFace", material=MW, segs=48)
+        (pg_x, pg_y + 0.038, pg_z + 0.12), 0.128, 0.004,
+        rot=(math_mod.radians(-90), 0, 0),
+        name="Sep_PG_FrontBezel", material=MM, segs=48)
+    dial_face = make_circle_disk(
+        (pg_x, pg_y + 0.04, pg_z + 0.12), 0.118,
+        normal_axis='Y', name="Sep_PG_DialFace", material=MW, segs=48)
+    dial_face.data.materials[0].diffuse_color = (1.0, 1.0, 1.0, 1.0)
 
     dial_cx = pg_x
-    dial_cy = pg_y
-    dial_face_z = pg_z + 0.152
+    dial_cz = pg_z + 0.12
+    dial_face_y = pg_y + 0.041
     arc_start = -135
     arc_end = 135
+
+    def dial_rotation(angle):
+        return (0, math_mod.radians(90) - angle, 0)
 
     for i in range(10):
         angle = math_mod.radians(arc_start + i * (arc_end - arc_start) / 9)
         tick_r = 0.10
         tx = dial_cx + tick_r * math_mod.cos(angle)
-        ty = dial_cy + tick_r * math_mod.sin(angle)
+        tz = dial_cz + tick_r * math_mod.sin(angle)
         tick = make_box(
-            (tx, ty, dial_face_z), (0.001, 0.015, 0.001),
+            (tx, dial_face_y, tz), (0.001, 0.001, 0.015),
             name="Sep_PG_TickM_{}".format(i), material=MM)
-        tick.rotation_euler[2] = angle
+        tick.rotation_euler = dial_rotation(angle)
 
     for i in range(40):
         angle = math_mod.radians(arc_start + i * (arc_end - arc_start) / 39)
         tick_r = 0.105
         tx = dial_cx + tick_r * math_mod.cos(angle)
-        ty = dial_cy + tick_r * math_mod.sin(angle)
+        tz = dial_cz + tick_r * math_mod.sin(angle)
         tick = make_box(
-            (tx, ty, dial_face_z), (0.0005, 0.008, 0.001),
+            (tx, dial_face_y, tz), (0.0005, 0.001, 0.008),
             name="Sep_PG_TickS_{}".format(i), material=MM)
-        tick.rotation_euler[2] = angle
+        tick.rotation_euler = dial_rotation(angle)
 
     gauge_labels = [(0, -135), (0.4, -75), (0.8, -15), (1.2, 45), (1.6, 105)]
     for val, angle_deg in gauge_labels:
         angle = math_mod.radians(angle_deg)
         lr = 0.08
         lx = dial_cx + lr * math_mod.cos(angle)
-        ly = dial_cy + lr * math_mod.sin(angle)
+        lz = dial_cz + lr * math_mod.sin(angle)
         make_box(
-            (lx, ly, dial_face_z + 0.001), (0.008, 0.004, 0.001),
+            (lx, dial_face_y + 0.001, lz), (0.008, 0.001, 0.004),
             name="Sep_PG_Label_{}".format(int(val * 10)), material=MM)
 
+    make_box(
+        (pg_x, dial_face_y + 0.001, dial_cz), (0.03, 0.001, 0.005),
+        name="Sep_PG_LabelModel", material=MM)
+    make_box(
+        (pg_x, dial_face_y + 0.001, dial_cz + 0.06), (0.02, 0.001, 0.005),
+        name="Sep_PG_LabelUnit", material=MM)
+    make_box(
+        (pg_x, dial_face_y + 0.001, dial_cz - 0.02), (0.01, 0.001, 0.004),
+        name="Sep_PG_LabelAccuracy", material=MM)
+
+    needle_angle = math_mod.radians(-135)
     needle = make_box(
-        (pg_x, pg_y, pg_z + 0.153), (0.002, 0.09, 0.001),
+        (pg_x, dial_face_y + 0.002, dial_cz + 0.015), (0.003, 0.001, 0.08),
         name="Sep_PG_Needle", material=MM)
-    needle.rotation_euler[2] = math_mod.radians(-135)
+    needle.rotation_euler = dial_rotation(needle_angle)
+    needle_tail = make_box(
+        (pg_x, dial_face_y + 0.002, dial_cz - 0.01), (0.004, 0.001, 0.02),
+        name="Sep_PG_NeedleTail", material=MM)
+    needle_tail.rotation_euler = dial_rotation(needle_angle)
     make_cylinder(
-        (pg_x, pg_y, pg_z + 0.154), 0.008, 0.003,
+        (pg_x, dial_face_y + 0.003, dial_cz), 0.008, 0.003,
+        rot=(math_mod.radians(90), 0, 0),
         name="Sep_PG_PivotDot", material=MM, segs=16)
 
-    # Rotate the complete gauge face from upward-facing to operator-facing (-Y).
-    bpy.ops.object.empty_add(type='PLAIN_AXES', location=(pg_x, pg_y, pg_z + 0.12))
-    pg_face = bpy.context.active_object
-    pg_face.name = "Sep_PG_FacePivot"
-    face_objects = [
-        "Sep_PG_DialCase", "Sep_PG_Bezel", "Sep_PG_DialFace",
-        "Sep_PG_Needle", "Sep_PG_PivotDot",
-    ]
-    for obj in bpy.context.scene.objects:
-        if (obj.name.startswith("Sep_PG_Tick") or
-                obj.name.startswith("Sep_PG_Label") or
-                obj.name in face_objects):
-            obj.parent = pg_face
-            obj.matrix_parent_inverse = pg_face.matrix_world.inverted()
-    pg_face.rotation_euler = (math_mod.radians(-90), 0, 0)
+    # Face elements face +Y directly (no rotation needed)
 
     # ── Pipe stubs connecting to FlareGas route ──
     # Small horizontal pipe from top of separator toward the gas pipe route
