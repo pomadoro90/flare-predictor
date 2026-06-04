@@ -528,56 +528,65 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
                 radius=cage_bar_r, material=MS, segs=6,
                 name="Sep_Ladder_CageV_{}".format(vi))
 
-        # ── Horizontal semicircular rings at regular intervals (SMOOTH curves) ──
+        # ── Horizontal semicircular rings at regular intervals (mesh tubes) ──
+        # Each ring is built from short pipe segments between consecutive points
+        # on the semicircular arc, so joints are real mesh geometry (no NURBS gaps).
         n_rings = int((cage_end_z - cage_start_z) / 0.40) + 1
+        n_arc_pts = 16  # number of arc segments per ring (more = smoother)
         for ri in range(n_rings):
             rz = cage_start_z + ri * 0.40
             if rz > cage_end_z + 0.01:
                 break
-            # Create a smooth semicircular curve using NURBS (smooth interpolation)
-            curve_data = bpy.data.curves.new(
-                name="Sep_Ladder_CageR_{}_curve".format(ri), type='CURVE')
-            curve_data.dimensions = '3D'
-            curve_data.bevel_depth = cage_bar_r
-            curve_data.bevel_resolution = 8
-            curve_data.fill_mode = 'FULL'
-            spline = curve_data.splines.new('NURBS')
-            spline.resolution_u = 48
-            n_curve_pts = 24
-            spline.points.add(n_curve_pts - 1)  # starts with 1 point
-            for pi in range(n_curve_pts):
-                t = pi / (n_curve_pts - 1)
+            # Build ring as chain of short pipe segments
+            prev = None
+            for si in range(n_arc_pts + 1):
+                t = si / n_arc_pts
                 angle = math_mod.pi * (1.0 - t)  # π → 0
                 px = lad_x + math_mod.cos(angle) * cage_rx
                 py = lad_y + math_mod.sin(angle) * cage_ry
-                spline.points[pi].co = (px, py, rz, 1)
-            ring_obj = bpy.data.objects.new(
-                "Sep_Ladder_CageR_{}".format(ri), curve_data)
-            bpy.context.collection.objects.link(ring_obj)
-            assign_mat(ring_obj, MS)
+                cur = (px, py, rz)
+                if prev is not None:
+                    make_pipe(
+                        prev, cur,
+                        radius=cage_bar_r, material=MS, segs=6,
+                        name="Sep_Ladder_CageR_{}_{}".format(ri, si - 1))
+                prev = cur
+            # ── Joint spheres at intersection with vertical bars ──
+            for vi in range(n_vert):
+                vfrac = vi / (n_vert - 1)  # 0.0 to 1.0
+                vangle = math_mod.pi * (1.0 - vfrac)
+                vx = lad_x + math_mod.cos(vangle) * cage_rx
+                vy = lad_y + math_mod.sin(vangle) * cage_ry
+                make_uvsphere(
+                    (vx, vy, rz), radius=cage_bar_r,
+                    name="Sep_Ladder_CageJnt_{}_{}".format(ri, vi),
+                    material=MS, segs=8)
 
-        # ── Top closing ring (thicker, smooth NURBS semicircle) ──
+        # ── Top closing ring (thicker, mesh tube segments + joints) ──
         top_r = cage_bar_r * 2
-        curve_data = bpy.data.curves.new(
-            name="Sep_Ladder_CageTopR_curve", type='CURVE')
-        curve_data.dimensions = '3D'
-        curve_data.bevel_depth = top_r
-        curve_data.bevel_resolution = 8
-        curve_data.fill_mode = 'FULL'
-        spline = curve_data.splines.new('NURBS')
-        spline.resolution_u = 48
-        n_curve_pts = 24
-        spline.points.add(n_curve_pts - 1)
-        for pi in range(n_curve_pts):
-            t = pi / (n_curve_pts - 1)
+        prev = None
+        for si in range(n_arc_pts + 1):
+            t = si / n_arc_pts
             angle = math_mod.pi * (1.0 - t)
             px = lad_x + math_mod.cos(angle) * cage_rx
             py = lad_y + math_mod.sin(angle) * cage_ry
-            spline.points[pi].co = (px, py, cage_end_z, 1)
-        top_obj = bpy.data.objects.new(
-            "Sep_Ladder_CageTopR", curve_data)
-        bpy.context.collection.objects.link(top_obj)
-        assign_mat(top_obj, MS)
+            cur = (px, py, cage_end_z)
+            if prev is not None:
+                make_pipe(
+                    prev, cur,
+                    radius=top_r, material=MS, segs=6,
+                    name="Sep_Ladder_CageTopR_{}".format(si - 1))
+            prev = cur
+        # ── Joint spheres on top ring ──
+        for vi in range(n_vert):
+            vfrac = vi / (n_vert - 1)
+            vangle = math_mod.pi * (1.0 - vfrac)
+            vx = lad_x + math_mod.cos(vangle) * cage_rx
+            vy = lad_y + math_mod.sin(vangle) * cage_ry
+            make_uvsphere(
+                (vx, vy, cage_end_z), radius=top_r,
+                name="Sep_Ladder_CageTopJnt_{}".format(vi),
+                material=MS, segs=8)
 
         # ── Back closing bar at top of cage (connects left/right cage bars at ladder Y) ──
         make_pipe(
