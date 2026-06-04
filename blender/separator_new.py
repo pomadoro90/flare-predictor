@@ -813,39 +813,31 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
             make_curve_tube(
                 ring_pts, radius=cage_bar_r, material=MS,
                 name="Sep_Ladder_CageR_" + str(ri))
-            # ── Joint spheres at intersection with vertical bars ──
-            for vi in range(n_vert):
-                vfrac = vi / (n_vert - 1)  # 0.0 to 1.0
-                vangle = math_mod.pi * (1.0 - vfrac)
-                vx = lad_x + math_mod.cos(vangle) * cage_rx
-                vy = lad_y + math_mod.sin(vangle) * cage_ry
-                make_uvsphere(
-                    (vx, vy, rz), radius=cage_bar_r,
-                    name="Sep_Ladder_CageJnt_{}_{}".format(ri, vi),
-                    material=MS, segs=8)
 
-        # ── Top closing ring (thicker curve tube + joints) ──
+        # ── Top closing ring (thicker curve tube, split for ladder access gap) ──
         top_r = cage_bar_r * 2
-        top_ring_pts = []
-        for si in range(n_arc_pts + 1):
-            t = si / n_arc_pts
-            angle = math_mod.pi * (1.0 - t)
-            px = lad_x + math_mod.cos(angle) * cage_rx
-            py = lad_y + math_mod.sin(angle) * cage_ry
-            top_ring_pts.append((px, py, cage_end_z))
-        make_curve_tube(
-            top_ring_pts, radius=top_r, material=MS,
-            name="Sep_Ladder_CageTopR")
-        # ── Joint spheres on top ring ──
-        for vi in range(n_vert):
-            vfrac = vi / (n_vert - 1)
-            vangle = math_mod.pi * (1.0 - vfrac)
-            vx = lad_x + math_mod.cos(vangle) * cage_rx
-            vy = lad_y + math_mod.sin(vangle) * cage_ry
-            make_uvsphere(
-                (vx, vy, cage_end_z), radius=top_r,
-                name="Sep_Ladder_CageTopJnt_{}".format(vi),
-                material=MS, segs=8)
+        gap_half = 0.4
+
+        def make_top_ring_arc(start_angle, end_angle, name):
+            arc_span = abs(start_angle - end_angle)
+            arc_pts = []
+            arc_steps = max(4, int(n_arc_pts * arc_span / math_mod.pi))
+            for si in range(arc_steps + 1):
+                t = si / arc_steps
+                angle = start_angle + (end_angle - start_angle) * t
+                px = lad_x + math_mod.cos(angle) * cage_rx
+                py = lad_y + math_mod.sin(angle) * cage_ry
+                arc_pts.append((px, py, cage_end_z))
+            make_curve_tube(
+                arc_pts, radius=top_r, material=MS,
+                name=name)
+
+        make_top_ring_arc(
+            math_mod.pi, math_mod.pi / 2 + gap_half,
+            "Sep_Ladder_CageTopR_L")
+        make_top_ring_arc(
+            math_mod.pi / 2 - gap_half, 0.0,
+            "Sep_Ladder_CageTopR_R")
 
         # ── Back closing bar at top of cage (connects left/right cage bars at ladder Y) ──
         make_pipe(
