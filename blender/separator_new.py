@@ -455,56 +455,52 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
             name="Sep_LG_Flag_{}".format(fi),
             material=MY, segs=8)
 
-    # ── Pressure gauge assembly: nozzle, valve, detailed dial ──
+    # ── Pressure gauge assembly: reference drawing order ──
     pg_x = SX - SL * 0.15
     pg_y = SY + SR * 0.3     # slight Y-offset
-    pg_z = SZ + SR + 0.8
+    pg_z = SZ + SR + 0.60
 
-    # Vertical connecting pipe from separator shell to PG base flange
+    # 4. Vertical pipe (bottom) — connects to separator vessel
     make_pipe(
-        (pg_x, pg_y, SZ + SR), (pg_x, pg_y, pg_z - 0.08),
-        radius=0.025, material=MS, segs=8,
+        (pg_x, pg_y, SZ + SR), (pg_x, pg_y, pg_z - 0.02),
+        radius=0.02, material=MS, segs=8,
         name="Sep_PG_ConnPipe")
 
-    # Nozzle / connection pipe from separator top
-    make_cylinder(
-        (pg_x, pg_y, pg_z - 0.04), 0.045, 0.08,
-        name="Sep_PG_Nozzle", material=MS, segs=12)
-
-    # Flange at base of nozzle
+    # 3. Wide horizontal junction (flange disc)
     make_disc_flange(
-        (pg_x, pg_y, pg_z - 0.08), (0, 0, 1), 0.045,
-        name_prefix="Sep_PG_Base", flange_scale=1.5, material=MS)
+        (pg_x, pg_y, pg_z), (0, 0, 1), 0.03,
+        name_prefix="Sep_PG_Base", flange_scale=2.2, material=MS)
 
-    # Hex nut connector below pressure gauge dial
+    # 2. Narrow neck: hex nut connector
     nut = make_cylinder(
-        (pg_x, pg_y, pg_z + 0.07), 0.025, 0.035,
+        (pg_x, pg_y, pg_z + 0.04), 0.022, 0.06,
         name="Sep_PG_NutConnector", material=MM, segs=6)
     bpy.context.view_layer.objects.active = nut
     nut.select_set(True)
     bpy.ops.object.shade_flat()
 
+    # Short stem from nut to gauge
     make_pipe(
-        (pg_x, pg_y, pg_z + 0.05), (pg_x, pg_y, pg_z + 0.10),
-        radius=0.015, material=MS, segs=8,
+        (pg_x, pg_y, pg_z + 0.07), (pg_x, pg_y, pg_z + 0.10),
+        radius=0.012, material=MS, segs=8,
         name="Sep_PG_StemPipe")
 
-    # Pressure gauge case, bezel, face, scale, and needle
+    # 1. Gauge circle (top)
     make_cylinder(
-        (pg_x, pg_y, pg_z + 0.12), 0.125, 0.06,
+        (pg_x, pg_y, pg_z + 0.13), 0.125, 0.06,
         rot=(0, math_mod.radians(-90), 0),
         name="Sep_PG_DialCase", material=MM, segs=48)
     bezel = make_cylinder(
-        (pg_x - 0.032, pg_y, pg_z + 0.12), 0.128, 0.006,
+        (pg_x - 0.032, pg_y, pg_z + 0.13), 0.128, 0.006,
         rot=(0, math_mod.radians(-90), 0),
         name="Sep_PG_FrontBezel", material=MM, segs=48)
     dial_face = make_circle_disk(
-        (pg_x - 0.036, pg_y, pg_z + 0.12), 0.118,
+        (pg_x - 0.036, pg_y, pg_z + 0.13), 0.118,
         normal_axis='neg_X', name="Sep_PG_DialFace", material=MW, segs=48)
     dial_face.data.materials[0].diffuse_color = (1.0, 1.0, 1.0, 1.0)
 
     dial_cx = pg_x
-    dial_cz = pg_z + 0.12
+    dial_cz = pg_z + 0.13
     tick_x = dial_cx - 0.037
     label_x = dial_cx - 0.038
     needle_x = dial_cx - 0.039
@@ -548,9 +544,11 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
         txt_obj.data.size = 0.012
         txt_obj.data.align_x = 'CENTER'
         txt_obj.data.align_y = 'CENTER'
-        txt_obj.rotation_euler = (0, math_mod.radians(-90), 0)
+        # Text faces -X direction, but also needs to be rotated so numbers are upright
+        # when viewed from -X. The text starts in XY plane facing +Z, so:
+        # Rotate -90 around Y to face -X, then rotate around X for radial alignment
+        txt_obj.rotation_euler = (math_mod.radians(angle_deg), math_mod.radians(-90), 0)
         assign_mat(txt_obj, MM)
-        bpy.ops.object.shade_flat()
 
     needle_angle = math_mod.radians(-45)
     needle = make_box(
@@ -561,8 +559,6 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
         (pivot_x, pg_y, dial_cz), 0.008, 0.003,
         rot=(0, math_mod.radians(-90), 0),
         name="Sep_PG_PivotDot", material=MM, segs=16)
-
-    # Face elements face -X directly (no rotation needed)
 
     # ── Pipe stubs connecting to FlareGas route ──
     # Small horizontal pipe from top of separator toward the gas pipe route
