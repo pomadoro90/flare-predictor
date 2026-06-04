@@ -437,7 +437,13 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
     # ── Pressure gauge assembly: nozzle, valve, detailed dial ──
     pg_x = SX - SL * 0.15
     pg_y = SY + SR * 0.3     # slight Y-offset
-    pg_z = SZ + SR + 0.35
+    pg_z = SZ + SR + 0.65
+
+    # Vertical connecting pipe from separator shell to PG base flange
+    make_pipe(
+        (pg_x, pg_y, SZ + SR), (pg_x, pg_y, pg_z - 0.08),
+        radius=0.025, material=MS, segs=8,
+        name="Sep_PG_ConnPipe")
 
     # Nozzle / connection pipe from separator top
     make_cylinder(
@@ -465,10 +471,14 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
         radius=0.015, material=MR, segs=8,
         name="Sep_PG_ValveLever_V")
 
+    make_cylinder(
+        (pg_x, pg_y, pg_z + 0.055), 0.020, 0.004,
+        name="Sep_PG_Gasket", material=MY, segs=24)
+
     # Hex nut connector below pressure gauge dial
     nut = make_cylinder(
         (pg_x, pg_y, pg_z + 0.07), 0.025, 0.035,
-        name="Sep_PG_NutConnector", material=MS, segs=6)
+        name="Sep_PG_NutConnector", material=MY, segs=6)
     bpy.context.view_layer.objects.active = nut
     nut.select_set(True)
     bpy.ops.object.shade_flat()
@@ -477,12 +487,13 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
     make_cylinder(
         (pg_x, pg_y, pg_z + 0.12), 0.125, 0.055,
         name="Sep_PG_DialCase", material=MM, segs=48)
+    make_cylinder(
+        (pg_x, pg_y - 0.063, pg_z + 0.09), 0.004, 0.006,
+        rot=(math_mod.radians(90), 0, 0),
+        name="Sep_PG_DrainHole", material=MM, segs=8)
     bezel = make_cylinder(
         (pg_x, pg_y, pg_z + 0.149), 0.128, 0.008,
-        name="Sep_PG_Bezel", material=MS, segs=48)
-    bpy.context.view_layer.objects.active = bezel
-    bezel.select_set(True)
-    bpy.ops.object.shade_flat()
+        name="Sep_PG_Bezel", material=MM, segs=48)
     make_cylinder(
         (pg_x, pg_y, pg_z + 0.150), 0.115, 0.003,
         name="Sep_PG_DialFace", material=MW, segs=48)
@@ -526,10 +537,26 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
     needle = make_box(
         (pg_x, pg_y, pg_z + 0.153), (0.002, 0.09, 0.001),
         name="Sep_PG_Needle", material=MM)
-    needle.rotation_euler[2] = math_mod.radians(30)
+    needle.rotation_euler[2] = math_mod.radians(-135)
     make_cylinder(
         (pg_x, pg_y, pg_z + 0.154), 0.008, 0.003,
         name="Sep_PG_PivotDot", material=MM, segs=16)
+
+    # Rotate the complete gauge face from upward-facing to operator-facing (-Y).
+    bpy.ops.object.empty_add(type='PLAIN_AXES', location=(pg_x, pg_y, pg_z + 0.12))
+    pg_face = bpy.context.active_object
+    pg_face.name = "Sep_PG_FacePivot"
+    face_objects = [
+        "Sep_PG_DialCase", "Sep_PG_Bezel", "Sep_PG_DialFace",
+        "Sep_PG_Needle", "Sep_PG_PivotDot",
+    ]
+    for obj in bpy.context.scene.objects:
+        if (obj.name.startswith("Sep_PG_Tick") or
+                obj.name.startswith("Sep_PG_Label") or
+                obj.name in face_objects):
+            obj.parent = pg_face
+            obj.matrix_parent_inverse = pg_face.matrix_world.inverted()
+    pg_face.rotation_euler = (math_mod.radians(-90), 0, 0)
 
     # ── Pipe stubs connecting to FlareGas route ──
     # Small horizontal pipe from top of separator toward the gas pipe route
