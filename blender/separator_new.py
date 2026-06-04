@@ -555,13 +555,12 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
         txt_obj.data.size = 0.012
         txt_obj.data.align_x = 'CENTER'
         txt_obj.data.align_y = 'CENTER'
-        txt_obj.rotation_euler = (0, math_mod.radians(-90), 0)
+        txt_obj.rotation_euler = (math_mod.radians(angle_deg - 90), math_mod.radians(-90), 0)
         assign_mat(txt_obj, MM)
-        bpy.ops.object.shade_flat()
 
     needle_angle = math_mod.radians(-45)
     needle = make_box(
-        (needle_x, pg_y, dial_cz + 0.01), (0.003, 0.001, 0.06),
+        (needle_x, pg_y, dial_cz), (0.003, 0.001, 0.06),
         name="Sep_PG_Needle", material=MM)
     needle.rotation_euler = dial_rotation(needle_angle)
     make_cylinder(
