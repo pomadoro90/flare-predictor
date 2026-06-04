@@ -839,33 +839,6 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
             math_mod.pi / 2 - gap_half, 0.0,
             "Sep_Ladder_CageTopR_R")
 
-        # ── Back closing bar at top of cage (connects left/right cage bars at ladder Y) ──
-        make_pipe(
-            (lad_x - cage_rx, lad_y, cage_end_z),
-            (lad_x + cage_rx, lad_y, cage_end_z),
-            radius=top_r, material=MS, segs=6,
-            name="Sep_Ladder_CageTopR_Back")
-
-        # ── Connectors: cage ends to railing posts ──
-        # Diagonal pipes from the left and right ends of the top cage ring
-        # to the nearest railing post ends on the front edge (p_y_max).
-        # This closes the gap between the cage and the platform railings.
-        # Left connector: from left cage ring end to left railing segment end
-        # The closest left post on front edge is at x = opening_x - opening_half
-        post_x_left = opening_x - opening_half
-        make_pipe(
-            (lad_x - cage_rx, lad_y, cage_end_z),
-            (post_x_left, p_y_max, cage_end_z),
-            radius=rail_radius, material=MS, segs=6,
-            name="Sep_Cage_Conn_L")
-        # Right connector: from right cage ring end to right railing segment start
-        post_x_right = opening_x + opening_half
-        make_pipe(
-            (lad_x + cage_rx, lad_y, cage_end_z),
-            (post_x_right, p_y_max, cage_end_z),
-            radius=rail_radius, material=MS, segs=6,
-            name="Sep_Cage_Conn_R")
-
     # ═══════════════════════════════════════════════════════════
     # 6. SMALL DETAILS
     # ═══════════════════════════════════════════════════════════
