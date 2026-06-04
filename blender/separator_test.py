@@ -26,7 +26,7 @@ def mat(name, rgb, rough=0.45, metal=0.25):
     return m
 
 MR = mat(name="Red",       rgb=(0.82, 0.15, 0.10), metal=0.30)
-MW = mat(name="White",     rgb=(0.92, 0.91, 0.87))
+MW = mat(name="White",     rgb=(1.0, 1.0, 1.0), rough=1.0, metal=0.0)
 MS = mat(name="Steel",     rgb=(0.55, 0.58, 0.62), metal=0.80, rough=0.30)
 MY = mat(name="Yellow",    rgb=(0.95, 0.82, 0.05))
 MM = mat(name="Sensor",    rgb=(0.06, 0.08, 0.16), metal=0.70, rough=0.30)
