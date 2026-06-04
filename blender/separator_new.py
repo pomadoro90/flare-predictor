@@ -434,25 +434,18 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
             name="Sep_LG_Flag_{}".format(fi),
             material=MY, segs=8)
 
-    # ── Pressure gauge (top, small cylinder + face) ──
+    # ── Pressure gauge stub with blind flange cap ──
     pg_x = SX - SL * 0.15
     pg_y = SY + SR * 0.3     # slight Y-offset
     pg_z = SZ + SR + 0.35
-    # Stalk
+    # Stalk (short vertical pipe)
     make_cylinder(
-        (pg_x, pg_y, pg_z - 0.10), 0.035, 0.18,
+        (pg_x, pg_y, pg_z - 0.05), 0.035, 0.10,
         name="Sep_PG_Stalk", material=MS, segs=8)
+    # Blind flange cap on top of stalk
     make_disc_flange(
-        (pg_x, pg_y, pg_z - 0.19), (0, 0, 1), 0.035,
+        (pg_x, pg_y, pg_z), (0, 0, 1), 0.035,
         name_prefix="Sep_PG", flange_scale=1.5, material=MS)
-    # Gauge body (yellow)
-    make_cylinder(
-        (pg_x, pg_y, pg_z), 0.05, 0.06,
-        name="Sep_PG_Body", material=MY, segs=10)
-    # Gauge face (dark disc)
-    make_cylinder(
-        (pg_x, pg_y, pg_z + 0.045), 0.065, 0.015,
-        name="Sep_PG_Face", material=MM, segs=12)
 
     # ── Pipe stubs connecting to FlareGas route ──
     # Small horizontal pipe from top of separator toward the gas pipe route
