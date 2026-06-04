@@ -508,17 +508,20 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
         rot=(math_mod.radians(-90), 0, 0),
         name="Sep_PG_DialCase", material=MM, segs=48)
     bezel = make_cylinder(
-        (pg_x, pg_y + 0.038, pg_z + 0.12), 0.128, 0.004,
+        (pg_x, pg_y + 0.032, pg_z + 0.12), 0.128, 0.006,
         rot=(math_mod.radians(-90), 0, 0),
         name="Sep_PG_FrontBezel", material=MM, segs=48)
     dial_face = make_circle_disk(
-        (pg_x, pg_y + 0.04, pg_z + 0.12), 0.118,
+        (pg_x, pg_y + 0.036, pg_z + 0.12), 0.118,
         normal_axis='Y', name="Sep_PG_DialFace", material=MW, segs=48)
     dial_face.data.materials[0].diffuse_color = (1.0, 1.0, 1.0, 1.0)
 
     dial_cx = pg_x
     dial_cz = pg_z + 0.12
-    dial_face_y = pg_y + 0.041
+    tick_y = pg_y + 0.037
+    label_y = pg_y + 0.038
+    needle_y = pg_y + 0.039
+    pivot_y = pg_y + 0.040
     arc_start = -135
     arc_end = 135
 
@@ -531,7 +534,7 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
         tx = dial_cx + tick_r * math_mod.cos(angle)
         tz = dial_cz + tick_r * math_mod.sin(angle)
         tick = make_box(
-            (tx, dial_face_y, tz), (0.001, 0.001, 0.015),
+            (tx, tick_y, tz), (0.001, 0.001, 0.015),
             name="Sep_PG_TickM_{}".format(i), material=MM)
         tick.rotation_euler = dial_rotation(angle)
 
@@ -541,7 +544,7 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
         tx = dial_cx + tick_r * math_mod.cos(angle)
         tz = dial_cz + tick_r * math_mod.sin(angle)
         tick = make_box(
-            (tx, dial_face_y, tz), (0.0005, 0.001, 0.008),
+            (tx, tick_y, tz), (0.0005, 0.001, 0.008),
             name="Sep_PG_TickS_{}".format(i), material=MM)
         tick.rotation_euler = dial_rotation(angle)
 
@@ -552,31 +555,31 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
         lx = dial_cx + lr * math_mod.cos(angle)
         lz = dial_cz + lr * math_mod.sin(angle)
         make_box(
-            (lx, dial_face_y + 0.001, lz), (0.008, 0.001, 0.004),
+            (lx, label_y, lz), (0.008, 0.001, 0.004),
             name="Sep_PG_Label_{}".format(int(val * 10)), material=MM)
 
     make_box(
-        (pg_x, dial_face_y + 0.001, dial_cz), (0.03, 0.001, 0.005),
+        (pg_x, label_y, dial_cz), (0.03, 0.001, 0.005),
         name="Sep_PG_LabelModel", material=MM)
     make_box(
-        (pg_x, dial_face_y + 0.001, dial_cz + 0.06), (0.02, 0.001, 0.005),
+        (pg_x, label_y, dial_cz + 0.06), (0.02, 0.001, 0.005),
         name="Sep_PG_LabelUnit", material=MM)
     make_box(
-        (pg_x, dial_face_y + 0.001, dial_cz - 0.02), (0.01, 0.001, 0.004),
+        (pg_x, label_y, dial_cz - 0.02), (0.01, 0.001, 0.004),
         name="Sep_PG_LabelAccuracy", material=MM)
 
     needle_angle = math_mod.radians(-135)
     needle = make_box(
-        (pg_x, dial_face_y + 0.002, dial_cz + 0.015), (0.003, 0.001, 0.08),
+        (pg_x, needle_y, dial_cz + 0.015), (0.003, 0.001, 0.08),
         name="Sep_PG_Needle", material=MM)
     needle.rotation_euler = dial_rotation(needle_angle)
     needle_tail = make_box(
-        (pg_x, dial_face_y + 0.002, dial_cz - 0.01), (0.004, 0.001, 0.02),
+        (pg_x, needle_y, dial_cz - 0.01), (0.004, 0.001, 0.02),
         name="Sep_PG_NeedleTail", material=MM)
     needle_tail.rotation_euler = dial_rotation(needle_angle)
     make_cylinder(
-        (pg_x, dial_face_y + 0.003, dial_cz), 0.008, 0.003,
-        rot=(math_mod.radians(90), 0, 0),
+        (pg_x, pivot_y, dial_cz), 0.008, 0.003,
+        rot=(math_mod.radians(-90), 0, 0),
         name="Sep_PG_PivotDot", material=MM, segs=16)
 
     # Face elements face +Y directly (no rotation needed)
