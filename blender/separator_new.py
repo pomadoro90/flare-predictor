@@ -162,6 +162,31 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
         bpy.ops.object.select_all(action='DESELECT')
         return joined
 
+    def make_curve_tube(points, radius=0.02, material=MS,
+                        name="CurveTube"):
+        if len(points) < 2:
+            return None
+        curve = bpy.data.curves.new(name + "_data", type='CURVE')
+        curve.dimensions = '3D'
+        curve.fill_mode = 'FULL'
+        curve.bevel_depth = radius
+        curve.bevel_resolution = 8
+        curve.resolution_u = 64
+
+        spline = curve.splines.new(type='POLY')
+        spline.points.add(len(points) - 1)
+        for point, coord in zip(spline.points, points):
+            point.co = (coord[0], coord[1], coord[2], 1.0)
+
+        obj = bpy.data.objects.new(name, curve)
+        bpy.context.collection.objects.link(obj)
+        assign_mat(obj, material)
+        bpy.context.view_layer.objects.active = obj
+        obj.select_set(True)
+        bpy.ops.object.shade_smooth()
+        obj.select_set(False)
+        return obj
+
     # ═══════════════════════════════════════════════════════════
     # 1. MAIN BODY
     # ═══════════════════════════════════════════════════════════
@@ -480,12 +505,12 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
             make_pipe(
                 (lad_x - cage_rx, p_y_max, rh),
                 (opening_x - opening_half, p_y_max, rh),
-                radius=0.022, material=MS, segs=6,
+                radius=rail_radius, material=MS, segs=6,
                 name="Sep_Cage_RailConn_L_{}".format(rail_tag))
             make_pipe(
                 (opening_x + opening_half, p_y_max, rh),
                 (lad_x + cage_rx, p_y_max, rh),
-                radius=0.022, material=MS, segs=6,
+                radius=rail_radius, material=MS, segs=6,
                 name="Sep_Cage_RailConn_R_{}".format(rail_tag))
         # Back rail (solid, no opening)
         make_pipe(
@@ -559,9 +584,9 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
                 radius=cage_bar_r, material=MS, segs=6,
                 name="Sep_Ladder_CageV_{}".format(vi))
 
-        # ── Horizontal semicircular rings at regular intervals (joined mesh tubes) ──
+        # ── Horizontal semicircular rings at regular intervals (curve tubes) ──
         n_rings = int((cage_end_z - cage_start_z) / 0.40) + 1
-        n_arc_pts = 16  # number of arc segments per ring (more = smoother)
+        n_arc_pts = 32  # number of arc segments per ring (more = smoother)
         for ri in range(n_rings):
             rz = cage_start_z + ri * 0.40
             if rz > cage_end_z + 0.01:
@@ -573,8 +598,8 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
                 px = lad_x + math_mod.cos(angle) * cage_rx
                 py = lad_y + math_mod.sin(angle) * cage_ry
                 ring_pts.append((px, py, rz))
-            make_polyline(
-                ring_pts, radius=cage_bar_r, material=MS, segs=6,
+            make_curve_tube(
+                ring_pts, radius=cage_bar_r, material=MS,
                 name="Sep_Ladder_CageR_" + str(ri))
             # ── Joint spheres at intersection with vertical bars ──
             for vi in range(n_vert):
@@ -587,7 +612,7 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
                     name="Sep_Ladder_CageJnt_{}_{}".format(ri, vi),
                     material=MS, segs=8)
 
-        # ── Top closing ring (thicker, mesh tube segments + joints) ──
+        # ── Top closing ring (thicker curve tube + joints) ──
         top_r = cage_bar_r * 2
         top_ring_pts = []
         for si in range(n_arc_pts + 1):
@@ -596,8 +621,8 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
             px = lad_x + math_mod.cos(angle) * cage_rx
             py = lad_y + math_mod.sin(angle) * cage_ry
             top_ring_pts.append((px, py, cage_end_z))
-        make_polyline(
-            top_ring_pts, radius=top_r, material=MS, segs=6,
+        make_curve_tube(
+            top_ring_pts, radius=top_r, material=MS,
             name="Sep_Ladder_CageTopR")
         # ── Joint spheres on top ring ──
         for vi in range(n_vert):
@@ -621,21 +646,20 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
         # Diagonal pipes from the left and right ends of the top cage ring
         # to the nearest railing post ends on the front edge (p_y_max).
         # This closes the gap between the cage and the platform railings.
-        conn_r = 0.018  # same as rail_radius
         # Left connector: from left cage ring end to left railing segment end
         # The closest left post on front edge is at x = opening_x - opening_half
         post_x_left = opening_x - opening_half
         make_pipe(
             (lad_x - cage_rx, lad_y, cage_end_z),
             (post_x_left, p_y_max, cage_end_z),
-            radius=conn_r, material=MS, segs=6,
+            radius=rail_radius, material=MS, segs=6,
             name="Sep_Cage_Conn_L")
         # Right connector: from right cage ring end to right railing segment start
         post_x_right = opening_x + opening_half
         make_pipe(
             (lad_x + cage_rx, lad_y, cage_end_z),
             (post_x_right, p_y_max, cage_end_z),
-            radius=conn_r, material=MS, segs=6,
+            radius=rail_radius, material=MS, segs=6,
             name="Sep_Cage_Conn_R")
 
     # ═══════════════════════════════════════════════════════════
