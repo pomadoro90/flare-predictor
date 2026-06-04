@@ -98,30 +98,67 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
 
     def make_disc_flange(end_pos, direction_vec, radius, name_prefix,
                          flange_scale=1.5, material=MS):
-        """Create a flat industrial flange with a body disc and 8 bolts."""
-        flange_thickness = 0.02
+        """Create a weld-neck flange with raised face and hex bolting."""
+        flange_thickness = 0.04
+        face_thickness = 0.01
+        raised_face_thickness = 0.005
         flange_disc_radius = radius * flange_scale
         flange_body_radius = radius * (flange_scale + 0.15)
+        hub_height = flange_disc_radius * 0.6
         bolt_circle_radius = flange_disc_radius * 0.85
         bolt_radius = 0.008
-        bolt_depth = flange_thickness * 3
+        bolt_depth = flange_thickness * 0.9
+        nut_radius = bolt_radius * 1.3
+        nut_depth = bolt_depth * 0.7
 
         direction = Vector(direction_vec).normalized()
         rotation = direction.to_track_quat('Z', 'Y').to_euler()
-        face_loc = tuple(end_pos)
-        body_loc = (end_pos[0] - direction.x * (flange_thickness / 2),
-                    end_pos[1] - direction.y * (flange_thickness / 2),
-                    end_pos[2] - direction.z * (flange_thickness / 2))
+
+        hub_loc = (end_pos[0] + direction.x * (hub_height / 2),
+                   end_pos[1] + direction.y * (hub_height / 2),
+                   end_pos[2] + direction.z * (hub_height / 2))
+        bpy.ops.mesh.primitive_cone_add(
+            vertices=24, radius1=radius, radius2=flange_disc_radius,
+            depth=hub_height, location=hub_loc, rotation=rotation)
+        hub = bpy.context.active_object
+        hub.name = name_prefix + "_FlangeHub"
+        assign_mat(hub, material)
+        bpy.ops.object.shade_smooth()
+
+        body_center_dist = hub_height + flange_thickness / 2
+        face_center_dist = hub_height + flange_thickness + face_thickness / 2
+        raised_face_center_dist = (
+            hub_height + flange_thickness + face_thickness +
+            raised_face_thickness / 2)
+        front_face_dist = (
+            hub_height + flange_thickness + face_thickness +
+            raised_face_thickness)
+
+        body_loc = (end_pos[0] + direction.x * body_center_dist,
+                    end_pos[1] + direction.y * body_center_dist,
+                    end_pos[2] + direction.z * body_center_dist)
+        face_loc = (end_pos[0] + direction.x * face_center_dist,
+                    end_pos[1] + direction.y * face_center_dist,
+                    end_pos[2] + direction.z * face_center_dist)
+        raised_face_loc = (
+            end_pos[0] + direction.x * raised_face_center_dist,
+            end_pos[1] + direction.y * raised_face_center_dist,
+            end_pos[2] + direction.z * raised_face_center_dist)
+
+        body = make_cylinder(
+            body_loc, flange_body_radius, flange_thickness,
+            name=name_prefix + "_Flange", material=material, segs=24)
+        body.rotation_euler = rotation
 
         face = make_cylinder(
-            face_loc, flange_disc_radius, flange_thickness,
+            face_loc, flange_disc_radius, face_thickness,
             name=name_prefix + "_FlangeFace", material=material, segs=24)
         face.rotation_euler = rotation
 
-        body = make_cylinder(
-            body_loc, flange_body_radius, flange_thickness * 2,
-            name=name_prefix + "_Flange", material=material, segs=24)
-        body.rotation_euler = rotation
+        raised_face = make_cylinder(
+            raised_face_loc, radius * 1.1, raised_face_thickness,
+            name=name_prefix + "_RaisedFace", material=material, segs=24)
+        raised_face.rotation_euler = rotation
 
         reference = Vector((0, 0, 1))
         if abs(direction.dot(reference)) > 0.95:
@@ -133,14 +170,30 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
             angle = i * 2 * math_mod.pi / 8
             offset = (local_x * (math_mod.cos(angle) * bolt_circle_radius) +
                       local_y * (math_mod.sin(angle) * bolt_circle_radius))
-            bolt_loc = (end_pos[0] + offset.x,
-                        end_pos[1] + offset.y,
-                        end_pos[2] + offset.z)
-            bolt = make_cylinder(
-                bolt_loc, bolt_radius, bolt_depth,
-                name=name_prefix + "_FlangeBolt_" + str(i),
-                material=material, segs=8)
+            bolt_center_dist = front_face_dist + bolt_depth / 2
+            nut_center_dist = hub_height - nut_depth / 2
+            bolt_loc = (end_pos[0] + direction.x * bolt_center_dist + offset.x,
+                        end_pos[1] + direction.y * bolt_center_dist + offset.y,
+                        end_pos[2] + direction.z * bolt_center_dist + offset.z)
+            nut_loc = (end_pos[0] + direction.x * nut_center_dist + offset.x,
+                       end_pos[1] + direction.y * nut_center_dist + offset.y,
+                       end_pos[2] + direction.z * nut_center_dist + offset.z)
+
+            bpy.ops.mesh.primitive_cylinder_add(
+                vertices=6, radius=bolt_radius, depth=bolt_depth,
+                location=bolt_loc, rotation=rotation)
+            bolt = bpy.context.active_object
+            bolt.name = name_prefix + "_FlangeBolt_" + str(i)
+            assign_mat(bolt, material)
             bolt.rotation_euler = rotation
+
+            bpy.ops.mesh.primitive_cylinder_add(
+                vertices=6, radius=nut_radius, depth=nut_depth,
+                location=nut_loc, rotation=rotation)
+            nut = bpy.context.active_object
+            nut.name = name_prefix + "_FlangeNut_" + str(i)
+            assign_mat(nut, material)
+            nut.rotation_euler = rotation
 
     def make_nozzle(pos, radius, length, direction_vec, name_prefix,
                     flange_scale=1.5, flange_r=0.04, material=MS):
@@ -309,7 +362,7 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
 
     # ── Inlet nozzle (large, top-left, slightly angled) ──
     inlet_x = SX - SL * 0.25
-    inlet_z = SZ + SR + 0.2
+    inlet_z = SZ + SR
     make_nozzle(
         (inlet_x, SY, inlet_z), 0.18, 0.55, (0, 0, 1),
         "Sep_Inlet", flange_scale=1.6, flange_r=0.045,
@@ -317,7 +370,7 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
 
     # ── Vent nozzle (medium, top-right, pointing up) ──
     vent_x = SX + SL * 0.28
-    vent_z = SZ + SR + 0.2
+    vent_z = SZ + SR
     make_nozzle(
         (vent_x, SY, vent_z), 0.14, 0.50, (0, 0, 1),
         "Sep_Vent", flange_scale=1.5, flange_r=0.04,
@@ -325,7 +378,7 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
 
     # ── Drain nozzle (small, bottom-center, pointing down) ──
     drain_x = SX
-    drain_z = SZ - SR - 0.2
+    drain_z = SZ - SR
     make_nozzle(
         (drain_x, SY, drain_z), 0.10, 0.55, (0, 0, -1),
         "Sep_Drain", flange_scale=1.5, flange_r=0.035,
@@ -334,8 +387,12 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
     # ── Drain/valve nozzle on left head bottom ──
     # Small nozzle port on the lower portion of the left elliptical head,
     # pointing outward at an angle (left and slightly down)
-    head_drain_x = SX - SL * 0.45
-    head_drain_z = SZ - SR * 0.3
+    head_center_x = SX - SL / 2
+    head_a = SL * 0.25
+    head_b = SR
+    head_drain_angle = math_mod.radians(240)
+    head_drain_x = head_center_x + head_a * math_mod.cos(head_drain_angle)
+    head_drain_z = SZ + head_b * math_mod.sin(head_drain_angle)
     make_nozzle(
         (head_drain_x, SY, head_drain_z), 0.08, 0.35, (-0.5, 0, -0.866),
         "Sep_HeadDrain", flange_scale=1.4, flange_r=0.03,
