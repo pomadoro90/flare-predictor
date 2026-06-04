@@ -1,7 +1,7 @@
 """
 Detailed horizontal separator (knockout drum) for flare-predictor project.
 Blender 4.0.2 compatible, low-poly (~2000-3000 faces).
-Coordinate system matches flare_install.py: SX=-7.0, SY=-4.5, SZ=1.6, SL=7.5, SR=1.4.
+Coordinate system matches flare_install.py: SX=-7.0, SY=-4.5, SZ=2.8, SL=7.5, SR=1.4.
 
 Function: create_separator(bpy, math, MW, MS, MY, MM, MN, MR)
 """
@@ -30,7 +30,7 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
     from mathutils import Vector
 
     # ─── Constants ────────────────────────────────────────────
-    SX, SY, SZ, SL, SR = -7.0, -4.5, 1.6, 7.5, 1.4
+    SX, SY, SZ, SL, SR = -7.0, -4.5, 2.8, 7.5, 1.4
     GROUND_Z = 0.0
 
     # ─── Helper functions ─────────────────────────────────────
@@ -334,59 +334,72 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
         head.scale = (head_scale_x, 1.0, 1.0)
 
     # ═══════════════════════════════════════════════════════════
-    # 2. SADDLE SUPPORTS — proper curved cradle saddles
+    # 2. MASSIVE STEEL BEAM SUPPORTS
     # ═══════════════════════════════════════════════════════════
-    saddle_positions = [-SL * 0.3, SL * 0.3]  # 35% / 65% of length
+    sx_positions = [SX - SL * 0.3, SX + SL * 0.3]
+    support_y_l = SY - SR * 0.65
+    support_y_r = SY + SR * 0.65
+    support_top_z = SZ - SR - 0.05
 
-    for i, x_off in enumerate(saddle_positions):
-        sx = SX + x_off
-        leg_h = SZ - SR                     # height from ground to cylinder bottom
+    for i, sx in enumerate(sx_positions):
+        make_box(
+            (sx, support_y_l, SZ / 2),
+            (0.15 / 2, 0.15 / 2, SZ / 2),
+            name="Sep_Support_Column_L_" + str(i), material=MS)
+        make_box(
+            (sx, support_y_r, SZ / 2),
+            (0.15 / 2, 0.15 / 2, SZ / 2),
+            name="Sep_Support_Column_R_" + str(i), material=MS)
 
-        # ── Curved cradle plate: half-cylinder hugging tank bottom ──
-        # Use a full cylinder positioned so its top half is hidden inside tank,
-        # but we only want the bottom portion visible.
-        # We create it at tank center with same radius, then it's visually
-        # hidden by the tank body on top. Width along X-axis (tank length).
-        saddle_w = 0.45   # width along tank axis
-        saddle = make_cylinder(
-            (sx, SY, SZ), SR + 0.03, saddle_w,
+        make_pipe(
+            (sx, support_y_l, support_top_z),
+            (sx, support_y_r, support_top_z),
+            radius=0.04, material=MS, segs=8,
+            name="Sep_Support_CrossBeam_" + str(i))
+
+        make_pipe(
+            (sx, support_y_l, 0.1),
+            (sx, support_y_r, SZ - SR - 0.1),
+            radius=0.025, material=MS, segs=8,
+            name="Sep_Support_Diag_L_" + str(i))
+        make_pipe(
+            (sx, support_y_r, 0.1),
+            (sx, support_y_l, SZ - SR - 0.1),
+            radius=0.025, material=MS, segs=8,
+            name="Sep_Support_Diag_R_" + str(i))
+
+        make_box(
+            (sx, support_y_l, GROUND_Z + 0.04),
+            (0.25, 0.25, 0.04),
+            name="Sep_Support_Base_L_" + str(i), material=MN)
+        make_box(
+            (sx, support_y_r, GROUND_Z + 0.04),
+            (0.25, 0.25, 0.04),
+            name="Sep_Support_Base_R_" + str(i), material=MN)
+
+        cradle = make_cylinder(
+            (sx, SY, SZ - SR + 0.02), SR + 0.03, 0.10,
             rot=(0, math_mod.radians(90), 0),
-            name="Sep_SaddlePlate_" + str(i),
+            name="Sep_Support_Cradle_" + str(i),
             material=MS, segs=24)
-        # Scale Z to 0.85 so it hugs tank closely but is clearly a curved cradle
-        # No X-scaling - keep the full circular cross-section visible
-        saddle.scale = (1.0, 1.0, 0.85)
+        cradle.scale = (1.0, 0.5, 1.0)
 
-        # ── Bottom wear plate (flat plate at the very bottom of the cradle) ──
-        make_box(
-            (sx, SY, SZ - SR * 0.85 - 0.02),
-            (saddle_w / 2, SR * 0.6 / 2, 0.02),
-            name="Sep_SaddleWear_" + str(i), material=MS)
+        make_pipe(
+            (sx, support_y_l, GROUND_Z + 0.08),
+            (sx, support_y_r, GROUND_Z + 0.08),
+            radius=0.04, material=MS, segs=8,
+            name="Sep_Support_BaseBeam_" + str(i))
 
-        # ── Vertical web plate (center, along Y axis) ──
-        # This is the main structural plate connecting cradle to base
-        web_h = leg_h * 0.85   # most of the height
-        web_z = GROUND_Z + web_h / 2
-        make_box(
-            (sx, SY, web_z),
-            (0.025, SR * 0.55 / 2, web_h / 2),   # thin plate, wide in Y, tall in Z
-            name="Sep_SaddleWeb_" + str(i), material=MS)
-
-        # ── Side stiffener plates (2 triangular gussets on each side) ──
-        for side_sgn, side_name in [(-1, "L"), (1, "R")]:
-            # Flat plate on each side, connecting cradle top to base
-            gusset_z = GROUND_Z + leg_h * 0.45
-            make_box(
-                (sx, SY + side_sgn * SR * 0.30, gusset_z),
-                (saddle_w / 2 * 0.8, 0.02, leg_h * 0.45 / 2),
-                name="Sep_SaddleGusset_{}_{}" .format(i, side_name), material=MS)
-
-        # ── Base plate ──
-        make_box(
-            (sx, SY, GROUND_Z + 0.03),
-            (saddle_w * 1.1 / 2, SR * 0.7 / 2, 0.03),
-            name="Sep_SaddleBase_" + str(i),
-            material=MN)
+    make_pipe(
+        (sx_positions[0], support_y_l, GROUND_Z + 0.08),
+        (sx_positions[1], support_y_l, GROUND_Z + 0.08),
+        radius=0.04, material=MS, segs=8,
+        name="Sep_Support_LongBeam_L")
+    make_pipe(
+        (sx_positions[0], support_y_r, GROUND_Z + 0.08),
+        (sx_positions[1], support_y_r, GROUND_Z + 0.08),
+        radius=0.04, material=MS, segs=8,
+        name="Sep_Support_LongBeam_R")
 
     # ═══════════════════════════════════════════════════════════
     # 3. NOZZLES AND FITTINGS
@@ -602,7 +615,7 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
     lad_x = SX + SL * 0.15              # ladder X center (stringers along X)
     lad_y = p_y_max                     # ladder Y = front edge of platform (was SY + SR + 0.10)
     lad_z_top = plat_z                  # top of ladder = platform level (flush with grating)
-    lad_z_bot = GROUND_Z + 0.2          # above ground
+    lad_z_bot = GROUND_Z + 0.4          # above ground
 
     # No hole in the platform — grating is continuous under the ladder.
     # The cage sits above the platform surface and does NOT cut through it.
