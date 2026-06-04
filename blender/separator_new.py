@@ -476,6 +476,12 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
         (pg_x, pg_y, pg_z - 0.08), (0, 0, 1), 0.045,
         name_prefix="Sep_PG_Base", flange_scale=1.5, material=MS)
 
+    # Visible pipe section between flange and gauge (same diameter as ConnPipe)
+    make_pipe(
+        (pg_x, pg_y, pg_z), (pg_x, pg_y, pg_z + 0.05),
+        radius=0.025, material=MS, segs=8,
+        name="Sep_PG_RiserPipe")
+
     # Hex nut connector below pressure gauge dial
     nut = make_cylinder(
         (pg_x, pg_y, pg_z + 0.07), 0.025, 0.035,
