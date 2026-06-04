@@ -96,9 +96,55 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
         obj.rotation_euler = direction.to_track_quat('Z', 'Y').to_euler()
         return obj
 
+    def make_disc_flange(end_pos, direction_vec, radius, name_prefix,
+                         flange_scale=1.5, material=MS):
+        """Create a flat industrial flange with a body disc and 8 bolts."""
+        flange_thickness = 0.02
+        flange_disc_radius = radius * flange_scale
+        flange_body_radius = radius * (flange_scale + 0.15)
+        bolt_circle_radius = flange_disc_radius * 0.85
+        bolt_radius = 0.008
+        bolt_depth = flange_thickness * 3
+
+        direction = Vector(direction_vec).normalized()
+        rotation = direction.to_track_quat('Z', 'Y').to_euler()
+        face_loc = tuple(end_pos)
+        body_loc = (end_pos[0] - direction.x * (flange_thickness / 2),
+                    end_pos[1] - direction.y * (flange_thickness / 2),
+                    end_pos[2] - direction.z * (flange_thickness / 2))
+
+        face = make_cylinder(
+            face_loc, flange_disc_radius, flange_thickness,
+            name=name_prefix + "_FlangeFace", material=material, segs=24)
+        face.rotation_euler = rotation
+
+        body = make_cylinder(
+            body_loc, flange_body_radius, flange_thickness * 2,
+            name=name_prefix + "_Flange", material=material, segs=24)
+        body.rotation_euler = rotation
+
+        reference = Vector((0, 0, 1))
+        if abs(direction.dot(reference)) > 0.95:
+            reference = Vector((0, 1, 0))
+        local_x = direction.cross(reference).normalized()
+        local_y = direction.cross(local_x).normalized()
+
+        for i in range(8):
+            angle = i * 2 * math_mod.pi / 8
+            offset = (local_x * (math_mod.cos(angle) * bolt_circle_radius) +
+                      local_y * (math_mod.sin(angle) * bolt_circle_radius))
+            bolt_loc = (end_pos[0] + offset.x,
+                        end_pos[1] + offset.y,
+                        end_pos[2] + offset.z)
+            bolt = make_cylinder(
+                bolt_loc, bolt_radius, bolt_depth,
+                name=name_prefix + "_FlangeBolt_" + str(i),
+                material=material, segs=8)
+            bolt.rotation_euler = rotation
+
     def make_nozzle(pos, radius, length, direction_vec, name_prefix,
                     flange_scale=1.5, flange_r=0.04, material=MS):
-        """Create a nozzle cylinder + flange ring pointing in direction_vec."""
+        """Create a nozzle cylinder + flat bolted flange pointing in direction_vec."""
         dz = direction_vec
         end_pos = (pos[0] + dz[0] * length,
                    pos[1] + dz[1] * length,
@@ -112,10 +158,8 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
                                 material=material, segs=12)
         direction = Vector(dz)
         cyl_obj.rotation_euler = direction.to_track_quat('Z', 'Y').to_euler()
-        # Flange torus at tip
-        make_torus(end_pos, radius * flange_scale, flange_r,
-                   name=name_prefix + "_Flange",
-                   material=material, m_segs=14, r_segs=8)
+        make_disc_flange(end_pos, dz, radius, name_prefix,
+                         flange_scale=flange_scale, material=material)
         return cyl_obj
 
     def make_polyline(points, radius=0.02, material=MS, segs=8,
@@ -356,9 +400,9 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
         rot=(0, 0, math_mod.radians(90)),  # along Y
         name="Sep_GasStub", material=MY, segs=10)
     # Flange on stub
-    make_torus(
-        (stub_x, SY + 0.6, stub_z), 0.09, 0.025,
-        name="Sep_GasStubFlange", material=MY, m_segs=12, r_segs=8)
+    make_disc_flange(
+        (stub_x, SY + 0.6, stub_z), (0, 1, 0), 0.06,
+        name_prefix="Sep_GasStub", flange_scale=1.5, material=MY)
 
     # ═══════════════════════════════════════════════════════════
     # 4. SERVICE PLATFORM ON TOP
