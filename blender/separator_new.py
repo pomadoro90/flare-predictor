@@ -555,7 +555,7 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
         txt_obj.data.size = 0.012
         txt_obj.data.align_x = 'CENTER'
         txt_obj.data.align_y = 'CENTER'
-        txt_obj.rotation_euler = (math_mod.radians(angle_deg - 90), math_mod.radians(-90), 0)
+        txt_obj.rotation_euler = (0, math_mod.radians(-90), 0)
         assign_mat(txt_obj, MM)
 
     needle_angle = math_mod.radians(-45)
