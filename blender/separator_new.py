@@ -118,6 +118,44 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
                    material=material, m_segs=14, r_segs=8)
         return cyl_obj
 
+    def make_polyline(points, radius=0.02, material=MS, segs=8,
+                      name="Polyline"):
+        if len(points) < 2:
+            return None
+        pipe_objects = []
+        for i in range(len(points) - 1):
+            p1, p2 = points[i], points[i + 1]
+            dx = p2[0] - p1[0]
+            dy = p2[1] - p1[1]
+            dz = p2[2] - p1[2]
+            length = (dx*dx + dy*dy + dz*dz) ** 0.5
+            if length < 0.001:
+                continue
+            mid = ((p1[0] + p2[0]) / 2,
+                   (p1[1] + p2[1]) / 2,
+                   (p1[2] + p2[2]) / 2)
+            obj = make_cylinder(
+                mid, radius, length,
+                name=name + "_seg_" + str(i),
+                material=material, segs=segs)
+            direction = Vector((dx, dy, dz))
+            obj.rotation_euler = direction.to_track_quat('Z', 'Y').to_euler()
+            pipe_objects.append(obj)
+        if not pipe_objects:
+            return None
+
+        bpy.ops.object.select_all(action='DESELECT')
+        bpy.context.view_layer.objects.active = pipe_objects[0]
+        for obj in pipe_objects:
+            obj.select_set(True)
+        bpy.ops.object.join()
+        joined = bpy.context.active_object
+        joined.name = name
+        joined.data.name = name + "_data"
+        bpy.ops.object.shade_smooth()
+        bpy.ops.object.select_all(action='DESELECT')
+        return joined
+
     # ═══════════════════════════════════════════════════════════
     # 1. MAIN BODY
     # ═══════════════════════════════════════════════════════════
@@ -421,41 +459,28 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
         rh = plat_z + rh_frac
         # Front rail — with gap for ladder access opening
         # Rails extend to exact post positions (no 0.05 offset) so they touch corner posts
-        # Clip against cage semicircular volume if rail is within cage height range
+        rail_tag = int(rh_frac * 100)
+        make_pipe(
+            (p_x_min, p_y_max, rh),
+            (opening_x - opening_half, p_y_max, rh),
+            radius=rail_radius, material=MS, segs=6,
+            name="Sep_Plat_Rail_F1_{}".format(rail_tag))
+        make_pipe(
+            (opening_x + opening_half, p_y_max, rh),
+            (p_x_max, p_y_max, rh),
+            radius=rail_radius, material=MS, segs=6,
+            name="Sep_Plat_Rail_F2_{}".format(rail_tag))
         if cage_start_z <= rh <= cage_end_z:
-            y_rel = p_y_max - lad_y
-            if y_rel < cage_ry:  # Y is inside cage reach
-                x_span = math_mod.sqrt(1 - (y_rel / cage_ry) ** 2) * cage_rx
-                cage_x_lo = lad_x - x_span
-                cage_x_hi = lad_x + x_span
-                # F1 left segment: from p_x_min to cage_x_lo (but not past opening gap)
-                f1_end = min(opening_x - opening_half, cage_x_lo)
-                if p_x_min < f1_end - 0.01:
-                    make_pipe(
-                        (p_x_min, p_y_max, rh),
-                        (f1_end, p_y_max, rh),
-                        radius=rail_radius, material=MS, segs=6,
-                        name="Sep_Plat_Rail_F1_{}".format(int(rh_frac * 100)))
-                # F2 right segment: from cage_x_hi to p_x_max (but not before opening gap)
-                f2_start = max(opening_x + opening_half, cage_x_hi)
-                if f2_start < p_x_max - 0.01:
-                    make_pipe(
-                        (f2_start, p_y_max, rh),
-                        (p_x_max, p_y_max, rh),
-                        radius=rail_radius, material=MS, segs=6,
-                        name="Sep_Plat_Rail_F2_{}".format(int(rh_frac * 100)))
-        else:
-            # Outside cage height zone — use original full spans
             make_pipe(
-                (p_x_min, p_y_max, rh),
+                (lad_x - cage_rx, p_y_max, rh),
                 (opening_x - opening_half, p_y_max, rh),
                 radius=rail_radius, material=MS, segs=6,
-                name="Sep_Plat_Rail_F1_{}".format(int(rh_frac * 100)))
+                name="Sep_Cage_RailConn_L_{}".format(rail_tag))
             make_pipe(
                 (opening_x + opening_half, p_y_max, rh),
-                (p_x_max, p_y_max, rh),
+                (lad_x + cage_rx, p_y_max, rh),
                 radius=rail_radius, material=MS, segs=6,
-                name="Sep_Plat_Rail_F2_{}".format(int(rh_frac * 100)))
+                name="Sep_Cage_RailConn_R_{}".format(rail_tag))
         # Back rail (solid, no opening)
         make_pipe(
             (p_x_min, p_y_min, rh),
@@ -528,29 +553,23 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
                 radius=cage_bar_r, material=MS, segs=6,
                 name="Sep_Ladder_CageV_{}".format(vi))
 
-        # ── Horizontal semicircular rings at regular intervals (mesh tubes) ──
-        # Each ring is built from short pipe segments between consecutive points
-        # on the semicircular arc, so joints are real mesh geometry (no NURBS gaps).
+        # ── Horizontal semicircular rings at regular intervals (joined mesh tubes) ──
         n_rings = int((cage_end_z - cage_start_z) / 0.40) + 1
         n_arc_pts = 16  # number of arc segments per ring (more = smoother)
         for ri in range(n_rings):
             rz = cage_start_z + ri * 0.40
             if rz > cage_end_z + 0.01:
                 break
-            # Build ring as chain of short pipe segments
-            prev = None
+            ring_pts = []
             for si in range(n_arc_pts + 1):
                 t = si / n_arc_pts
                 angle = math_mod.pi * (1.0 - t)  # π → 0
                 px = lad_x + math_mod.cos(angle) * cage_rx
                 py = lad_y + math_mod.sin(angle) * cage_ry
-                cur = (px, py, rz)
-                if prev is not None:
-                    make_pipe(
-                        prev, cur,
-                        radius=cage_bar_r, material=MS, segs=6,
-                        name="Sep_Ladder_CageR_{}_{}".format(ri, si - 1))
-                prev = cur
+                ring_pts.append((px, py, rz))
+            make_polyline(
+                ring_pts, radius=cage_bar_r, material=MS, segs=6,
+                name="Sep_Ladder_CageR_" + str(ri))
             # ── Joint spheres at intersection with vertical bars ──
             for vi in range(n_vert):
                 vfrac = vi / (n_vert - 1)  # 0.0 to 1.0
@@ -564,19 +583,16 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
 
         # ── Top closing ring (thicker, mesh tube segments + joints) ──
         top_r = cage_bar_r * 2
-        prev = None
+        top_ring_pts = []
         for si in range(n_arc_pts + 1):
             t = si / n_arc_pts
             angle = math_mod.pi * (1.0 - t)
             px = lad_x + math_mod.cos(angle) * cage_rx
             py = lad_y + math_mod.sin(angle) * cage_ry
-            cur = (px, py, cage_end_z)
-            if prev is not None:
-                make_pipe(
-                    prev, cur,
-                    radius=top_r, material=MS, segs=6,
-                    name="Sep_Ladder_CageTopR_{}".format(si - 1))
-            prev = cur
+            top_ring_pts.append((px, py, cage_end_z))
+        make_polyline(
+            top_ring_pts, radius=top_r, material=MS, segs=6,
+            name="Sep_Ladder_CageTopR")
         # ── Joint spheres on top ring ──
         for vi in range(n_vert):
             vfrac = vi / (n_vert - 1)
