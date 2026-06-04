@@ -493,25 +493,14 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
         rail_tag = int(rh_frac * 100)
         make_pipe(
             (p_x_min, p_y_max, rh),
-            (opening_x - opening_half, p_y_max, rh),
+            (lad_x - cage_rx, p_y_max, rh),
             radius=rail_radius, material=MS, segs=6,
-            name="Sep_Plat_Rail_F1_{}".format(rail_tag))
+            name="Sep_Plat_Rail_FL_{}".format(rail_tag))
         make_pipe(
-            (opening_x + opening_half, p_y_max, rh),
+            (lad_x + cage_rx, p_y_max, rh),
             (p_x_max, p_y_max, rh),
             radius=rail_radius, material=MS, segs=6,
-            name="Sep_Plat_Rail_F2_{}".format(rail_tag))
-        if cage_start_z <= rh <= cage_end_z:
-            make_pipe(
-                (lad_x - cage_rx, p_y_max, rh),
-                (opening_x - opening_half, p_y_max, rh),
-                radius=rail_radius, material=MS, segs=6,
-                name="Sep_Cage_RailConn_L_{}".format(rail_tag))
-            make_pipe(
-                (opening_x + opening_half, p_y_max, rh),
-                (lad_x + cage_rx, p_y_max, rh),
-                radius=rail_radius, material=MS, segs=6,
-                name="Sep_Cage_RailConn_R_{}".format(rail_tag))
+            name="Sep_Plat_Rail_FR_{}".format(rail_tag))
         # Back rail (solid, no opening)
         make_pipe(
             (p_x_min, p_y_min, rh),
