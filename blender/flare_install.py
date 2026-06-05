@@ -425,23 +425,6 @@ for cz in [z/10.0 for z in range(int(SS_Z*10+5), int(STEAM_Z*10), 20)]:  # ка�
          (FX+math.cos(STEAM_AZ)*R, FY+math.sin(STEAM_AZ)*R, cz),
          r=0.012, m=MS, seg=6, name="SCL_B_{}".format(int(cz*10)))
 
-# Кольцевой паровой коллектор вокруг горелки
-STEAM_RING_R = 0.62
-for ring_h in [STEAM_Z, STEAM_Z+0.6]:
-    torus((FX, FY, ring_h), STEAM_RING_R, 0.04, name="SteamRing_{}".format(int(ring_h*10)), m=MS, seg=48, rseg=12)
-    # Соединительная трубка от стояка к кольцу
-    pipe((SX0, SY0, ring_h), (FX-STEAM_RING_R*math.cos(STEAM_AZ+math.pi), FY-STEAM_RING_R*math.sin(STEAM_AZ+math.pi), ring_h),
-         r=0.04, m=MS, seg=10, name="SteamBrg_{}".format(int(ring_h*10)))
-
-# Паровые форсунки (сопла) — 8 шт. по окружности, направлены в зону горения
-for fi in range(8):
-    fa = math.radians(fi * 45)
-    fx = FX + math.cos(fa) * STEAM_RING_R
-    fy = FY + math.sin(fa) * STEAM_RING_R
-    # Короткая трубка-форсунка, направленная внутрь к пламени
-    pipe((fx, fy, STEAM_Z+0.3), (FX+math.cos(fa)*0.35, FY+math.sin(fa)*0.35, STEAM_Z+0.3),
-         r=0.025, m=MS, seg=8, name="Nozzle{}".format(fi))
-
 # ═══════ 6. ДАТЧИКИ НА СТВОЛЕ ═══════
 # Датчик давления: корпус на кронштейне + стержень к стволу
 def pressure_sensor(loc, name):
