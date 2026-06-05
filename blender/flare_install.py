@@ -371,6 +371,22 @@ for h in GH:
 # ═══════ 5. ГОРЕЛКА + ПАР + ГАЗОВЫЙ КОЛЛЕКТОР ═══════
 BZ = H + 0.3
 cyl((FX, FY, BZ), 0.80, 1.0, name="Burner_B", m=MB, seg=26)
+import importlib.util as _flare_tip_importlib_util
+import os as _flare_tip_os
+_flare_tip_path = _flare_tip_os.path.abspath(_flare_tip_os.path.join(_flare_tip_os.path.dirname(__file__), "..", "flare_tip_final.py"))
+_flare_tip_spec = _flare_tip_importlib_util.spec_from_file_location("flare_tip_final_data", _flare_tip_path)
+_flare_tip = _flare_tip_importlib_util.module_from_spec(_flare_tip_spec)
+_flare_tip_spec.loader.exec_module(_flare_tip)
+NOZZLE_Z = BZ + 0.5
+_flare_tip_materials = _flare_tip.make_materials()
+_flare_tip_assembly = _flare_tip.make_assembly_empty()
+_flare_tip_created = []
+for _flare_tip_rec in _flare_tip.OBJECTS:
+    _flare_tip_obj = _flare_tip.create_object(_flare_tip_rec, _flare_tip_materials)
+    _flare_tip_created.append(_flare_tip_obj)
+for _flare_tip_obj in _flare_tip_created:
+    _flare_tip.parent_keep_world(_flare_tip_obj, _flare_tip_assembly)
+_flare_tip_assembly.location = (FX, FY, NOZZLE_Z)
 
 # Дежурные горелки: газ подаётся изнутри ствола через маленькие патрубки
 # (основной сбросной газ идёт внутри ствола — подводится от сепаратора через эстакаду)
