@@ -409,6 +409,10 @@ STEAM_PIPE_R = 0.12
 SX0 = FX + math.cos(STEAM_AZ) * STEAM_R
 SY0 = FY + math.sin(STEAM_AZ) * STEAM_R
 SS_Z = 2.7  # уровень эстакады (SHOE_Z, секция 9) — начало стояка
+# Стояк: только от эстакады вверх (нижний конец на эстакаде, не на земле)
+pipe((SX0, SY0, SS_Z),  (SX0, SY0, 12.0), r=STEAM_PIPE_R, m=MR, seg=16, name="SteamRise_L")
+pipe((SX0, SY0, 12.0), (SX0, SY0, 28.0), r=STEAM_PIPE_R, m=MW, seg=16, name="SteamRise_M")
+pipe((SX0, SY0, 28.0), (SX0, SY0, STEAM_Z), r=STEAM_PIPE_R, m=MR, seg=16, name="SteamRise_U")
 
 # Крепления-хомуты каждые 2 метра (torus вокруг стояка + стержень к стволу)
 CLAMP_R = STEAM_PIPE_R * 1.5
