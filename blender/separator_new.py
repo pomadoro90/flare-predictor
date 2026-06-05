@@ -7,7 +7,6 @@ Function: create_separator(bpy, math, MW, MS, MY, MM, MN, MR)
 """
 
 import math
-import bmesh
 
 
 def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
@@ -325,15 +324,6 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
                          rot=(0, math_mod.radians(90), 0),
                          name="Sep_Body", material=MW, segs=30)
 
-    # Remove cylinder end caps (they cause visible seams with heads)
-    bm = bmesh.new()
-    bm.from_mesh(body.data)
-    cap_faces = [f for f in bm.faces if abs(f.normal.x) > 0.9]
-    bmesh.ops.delete(bm, geom=cap_faces, context='FACES_ONLY')
-    bm.to_mesh(body.data)
-    bm.free()
-    body.data.update()
-
     # Elliptical heads at both ends (elongated UV hemispheres)
     head_scale_x = 0.6  # elliptical head depth ~0.6 * SR
     vessel_parts = [body]
@@ -353,12 +343,12 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
         bpy.ops.mesh.select_all(action='DESELECT')
         bpy.ops.object.mode_set(mode='OBJECT')
 
-        threshold = 0.05 * SR
+        threshold = 0.01 * SR
         for vertex in head.data.vertices:
             if side_label == "L":
-                vertex.select = vertex.co.x >= -threshold
+                vertex.select = vertex.co.x > threshold
             else:
-                vertex.select = vertex.co.x <= threshold
+                vertex.select = vertex.co.x < -threshold
 
         bpy.ops.object.mode_set(mode='EDIT')
         bpy.ops.mesh.delete(type='VERT')
@@ -487,6 +477,29 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
         material=MS)
 
     # ── (Manhole removed from left head per reference — no manhole on left end cap) ──
+
+    # ── Level gauge (right side, vertical pipe with flags) ──
+    lg_x = SX + SL * 0.25
+    lg_y = SY + SR * 0.5      # Y-offset to be visible from camera
+    lg_z_bottom = SZ - SR * 0.35
+    lg_z_top = SZ + SR * 0.15
+    # Vertical pipe
+    make_pipe(
+        (lg_x, lg_y, lg_z_bottom), (lg_x, lg_y, lg_z_top + 0.08),
+        radius=0.03, material=MS, segs=8,
+        name="Sep_LG_Pipe")
+    make_disc_flange(
+        (lg_x, lg_y, lg_z_top + 0.08), (0, 0, 1), 0.03,
+        name_prefix="Sep_LG", flange_scale=1.5, material=MS)
+    # Flag indicators at intervals (small yellow cylinders)
+    n_flags = 6
+    for fi in range(n_flags):
+        frac = fi / (n_flags - 1)
+        fz = lg_z_bottom + (lg_z_top - lg_z_bottom) * frac
+        make_cylinder(
+            (lg_x, lg_y, fz), 0.045, 0.02,
+            name="Sep_LG_Flag_{}".format(fi),
+            material=MY, segs=8)
 
     # ── Pressure gauge assembly: nozzle, valve, detailed dial ──
     pg_x = SX - SL * 0.15
