@@ -1496,6 +1496,31 @@ def create_hollow_windshield_sleeve(rec, mat):
     return outer
 
 
+def create_hollow_body(rec, mat):
+    dims = meters(rec['dims'])
+    outer_r = max(dims[0], dims[1]) / 2.0
+    inner_r = outer_r * 0.82
+    vertices = rec.get('verts', 384)
+    bpy.ops.mesh.primitive_cylinder_add(vertices=vertices, radius=outer_r, depth=dims[2], location=tuple(rec['loc']))
+    outer = bpy.context.object
+    outer.name = rec['name']
+    outer.data.name = rec['name'] + '_mesh'
+    bpy.ops.mesh.primitive_cylinder_add(vertices=vertices, radius=inner_r, depth=dims[2] + 0.02, location=tuple(rec['loc']))
+    inner = bpy.context.object
+    inner.name = rec['name'] + '_inner_boolean'
+    mod = outer.modifiers.new('hollow_inner_cut', 'BOOLEAN')
+    mod.operation = 'DIFFERENCE'
+    mod.object = inner
+    bpy.context.view_layer.objects.active = outer
+    outer.select_set(True)
+    bpy.ops.object.modifier_apply(modifier=mod.name)
+    bpy.data.objects.remove(inner, do_unlink=True)
+    apply_exact_dimensions_before_rotation(outer, dims)
+    set_exact_transform(outer, rec)
+    assign_and_shade(outer, mat, smooth=True)
+    return outer
+
+
 def is_torus_name(name):
     explicit = ('geo_steam_collector', 'geo_steam_riser_ring', 'geo_fuel_manifold')
     return name in explicit or name in ('geo_vortex_ring', 'geo_windshield_ring_bottom', 'geo_windshield_ring_top', 'geo_windshield_ring_top_canted_flange')
@@ -1510,6 +1535,8 @@ def create_object(rec, materials):
 
     if name == 'geo_windshield_sleeve':
         return create_hollow_windshield_sleeve(rec, mat)
+    if name == 'geo_body':
+        return create_hollow_body(rec, mat)
     if is_torus_name(name):
         return create_torus(rec, mat)
     if rec.get('verts') == 8 or 'vane' in name and not ('nozzle' in name):
