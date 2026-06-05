@@ -254,7 +254,7 @@ for pz, pname in [(12.0, "Joint_LM"), (28.0, "Joint_MU"), (37.0, "Top")]:
         sx = FX + math.cos(ang) * (PR - 0.22)
         sy = FY + math.sin(ang) * (PR - 0.22)
         # Стойка: от чуть ниже нижнего поручня (pz+0.30) до верхнего (pz+1.30)
-        cyl((sx, sy, pz+0.30), POST_R, 1.0, name="{}_P{}".format(pname, a), m=MS, seg=6)
+        cyl((sx, sy, pz+0.68), POST_R, 1.24, name="{}_P{}".format(pname, a), m=MS, seg=6)
 
 # ── Отверстия (круглые люки) в платформах над лестницей ──
 HATCH_R = 0.35  # радиус круглого люка (достаточно для прохода человека)
