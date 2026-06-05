@@ -487,8 +487,6 @@ _cabinet_dy = SY + 4.0
 for _cabinet_obj in _cabinet_created:
     _cabinet_obj.location.x += _cabinet_dx
     _cabinet_obj.location.y += _cabinet_dy
-    _cabinet_obj.rotation_euler.z += math.pi  # face doors away from separator
-    _cabinet_obj.scale = (_cabinet_obj.scale.x * 2.0, _cabinet_obj.scale.y * 2.0, _cabinet_obj.scale.z * 2.0)
 
 _cabinet_materials = _cabinet_builder.make_all_materials()
 _cabinet_builder.assign_materials(_cabinet_materials)
