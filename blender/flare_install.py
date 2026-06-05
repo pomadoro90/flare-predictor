@@ -483,10 +483,11 @@ _cabinet_builder.build_cabinet()
 _cabinet_builder.duplicate_cabinet(0.55)
 _cabinet_created = [obj for obj in bpy.data.objects if obj not in _cabinet_existing]
 _cabinet_dx = SX - 4.5
-_cabinet_dy = SY + 4.0
+_cabinet_dy = SY - 2.0
 for _cabinet_obj in _cabinet_created:
     _cabinet_obj.location.x += _cabinet_dx
     _cabinet_obj.location.y += _cabinet_dy
+    _cabinet_obj.scale = (_cabinet_obj.scale.x * 2.0, _cabinet_obj.scale.y * 2.0, _cabinet_obj.scale.z * 2.0)
 
 _cabinet_materials = _cabinet_builder.make_all_materials()
 _cabinet_builder.assign_materials(_cabinet_materials)
