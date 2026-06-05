@@ -368,34 +368,9 @@ for h in GH:
         pipe((FX, FY, h), (ax, ay, 0.80), r=r, m=MC, seg=14,
              name="Guy_{}_{}".format(int(h), ga))
 
-# ═══════ 5. ГОРЕЛКА + ДЕЖУРНЫЕ ГОРЕЛКИ + ПАР + ГАЗОВЫЙ КОЛЛЕКТОР ═══════
+# ═══════ 5. ГОРЕЛКА + ПАР + ГАЗОВЫЙ КОЛЛЕКТОР ═══════
 BZ = H + 0.3
 cyl((FX, FY, BZ), 0.80, 1.0, name="Burner_B", m=MB, seg=26)
-cyl((FX, FY, BZ+1.3), 0.45, 2.2, name="Burner_N", m=MB, seg=26)
-for j, dz in enumerate([0.5, 1.0, 1.5, 2.0]):
-    torus((FX, FY, BZ+0.4+dz*0.8), 0.50, 0.04, name="Bur_R{}".format(j), m=MS, seg=36, rseg=12)
-bpy.ops.mesh.primitive_cone_add(vertices=20, radius1=0.10, radius2=0.80, depth=7.0, location=(FX, FY, BZ+6.5))
-sm(obj=bpy.context.active_object, m=MF)
-bpy.context.active_object.name = "Flame"
-bpy.ops.object.shade_smooth()
-for a in [0, 90, 180, 270]:
-    ang = math.radians(a)
-    px = FX + math.cos(ang) * 0.35; py = FY + math.sin(ang) * 0.35
-    cyl((px, py, BZ+2.5), 0.05, 1.0, name="Pilot{}".format(a), m=MB, seg=8)
-
-# ДЕЖУРНЫЕ ГОРЕЛКИ — 3 шт. вокруг сопла, постоянное пламя
-for da in [60, 180, 300]:
-    dang = math.radians(da)
-    dpx = FX + math.cos(dang) * 0.60
-    dpy = FY + math.sin(dang) * 0.60
-    # Корпус дежурной горелки
-    cyl((dpx, dpy, BZ+2.0), 0.06, 0.35, name="Stand_Flame_{}".format(da), m=MB, seg=12)
-    # Маленький язычок пламени (медный оттенок)
-    bpy.ops.mesh.primitive_cone_add(vertices=12, radius1=0.03, radius2=0.10, depth=1.2,
-                                     location=(dpx, dpy, BZ+2.8))
-    so = bpy.context.active_object; so.name = "Pilot_Flame_{}".format(da)
-    sm(obj=so, m=mat("PilotFlame", (0.95, 0.65, 0.20)))
-    bpy.ops.object.shade_smooth()
 
 # Дежурные горелки: газ подаётся изнутри ствола через маленькие патрубки
 # (основной сбросной газ идёт внутри ствола — подводится от сепаратора через эстакаду)
