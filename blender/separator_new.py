@@ -860,29 +860,17 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
                 ring_pts, radius=cage_bar_r, material=MS,
                 name="Sep_Ladder_CageR_" + str(ri))
 
-        gap_half = math_mod.radians(23)
-        n_arc_pts = 16
-        top_left_pts = []
+        # Top ring — full semicircular arc, same style as regular rings
+        top_ring_pts = []
         for si in range(n_arc_pts + 1):
             t = si / n_arc_pts
-            angle = math_mod.pi + (math_mod.pi / 2 + gap_half - math_mod.pi) * t
+            angle = math_mod.pi * (1.0 - t)  # π → 0
             px = lad_x + math_mod.cos(angle) * cage_rx
             py = lad_y + math_mod.sin(angle) * cage_ry
-            top_left_pts.append((px, py, cage_end_z))
+            top_ring_pts.append((px, py, cage_end_z))
         make_curve_tube(
-            top_left_pts, radius=cage_bar_r, material=MS,
-            name="Sep_Ladder_CageR_Top_L")
-
-        top_right_pts = []
-        for si in range(n_arc_pts + 1):
-            t = si / n_arc_pts
-            angle = (math_mod.pi / 2 - gap_half) * (1.0 - t)
-            px = lad_x + math_mod.cos(angle) * cage_rx
-            py = lad_y + math_mod.sin(angle) * cage_ry
-            top_right_pts.append((px, py, cage_end_z))
-        make_curve_tube(
-            top_right_pts, radius=cage_bar_r, material=MS,
-            name="Sep_Ladder_CageR_Top_R")
+            top_ring_pts, radius=cage_bar_r, material=MS,
+            name="Sep_Ladder_CageR_Top")
 
     # ═══════════════════════════════════════════════════════════
     # 6. SMALL DETAILS
