@@ -324,6 +324,23 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
                          rot=(0, math_mod.radians(90), 0),
                          name="Sep_Body", material=MW, segs=30)
 
+    # Remove cylinder end cap faces (they cause visible seams with heads)
+    bpy.ops.object.select_all(action='DESELECT')
+    bpy.context.view_layer.objects.active = body
+    body.select_set(True)
+    bpy.ops.object.mode_set(mode='EDIT')
+    bpy.ops.mesh.select_mode(type='FACE')
+    bpy.ops.mesh.select_all(action='DESELECT')
+    # End caps have normals aligned with +/-X axis (cylinder along X after rotation)
+    import bmesh as _bm
+    _bmsh = _bm.from_edit_mesh(body.data)
+    for _f in _bmsh.faces:
+        if abs(_f.normal.x) > 0.9:
+            _f.select = True
+    _bm.update_edit_mesh(body.data)
+    bpy.ops.mesh.delete(type='FACE')
+    bpy.ops.object.mode_set(mode='OBJECT')
+
     # Elliptical heads at both ends (elongated UV hemispheres)
     head_scale_x = 0.6  # elliptical head depth ~0.6 * SR
     vessel_parts = [body]
@@ -411,11 +428,11 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
             name="Sep_Support_Base_R_" + str(i), material=MN)
 
         cradle = make_cylinder(
-            (sx, SY, SZ - SR * 0.40), SR + 0.03, 0.50,
+            (sx, SY, SZ), SR + 0.03, 0.45,
             rot=(0, math_mod.radians(90), 0),
             name="Sep_Support_Cradle_" + str(i),
             material=MS, segs=24)
-        cradle.scale = (1.0, 0.5, 0.4)
+        cradle.scale = (1.0, 0.5, 0.85)
 
         make_pipe(
             (sx, support_y_l, GROUND_Z + 0.08),
