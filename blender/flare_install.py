@@ -464,6 +464,29 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from separator_new import create_separator
 create_separator(bpy, math, MW, MS, MY, MM, MN, MR)
 
+# ═══════ 7a. ШКАФЫ УПРАВЛЕНИЯ ═══════
+# Добавляем готовую сборку шкафов без вызова clear_scene/main/build_geometry:
+# сцена факельной установки уже создана, а грунт/опоры из отдельного файла не нужны.
+import importlib.util as _cabinet_importlib_util
+import os as _cabinet_os
+_cabinet_path = _cabinet_os.path.abspath(_cabinet_os.path.join(_cabinet_os.path.dirname(__file__), "..", "scene_build_clean.py"))
+_cabinet_spec = _cabinet_importlib_util.spec_from_file_location("scene_build_clean_cabinets", _cabinet_path)
+_cabinet_builder = _cabinet_importlib_util.module_from_spec(_cabinet_spec)
+_cabinet_spec.loader.exec_module(_cabinet_builder)
+
+_cabinet_existing = set(bpy.data.objects)
+_cabinet_builder.build_cabinet()
+_cabinet_builder.duplicate_cabinet(0.55)
+_cabinet_created = [obj for obj in bpy.data.objects if obj not in _cabinet_existing]
+_cabinet_dx = SX - 3.0
+_cabinet_dy = SY - 1.0
+for _cabinet_obj in _cabinet_created:
+    _cabinet_obj.location.x += _cabinet_dx
+    _cabinet_obj.location.y += _cabinet_dy
+
+_cabinet_materials = _cabinet_builder.make_all_materials()
+_cabinet_builder.assign_materials(_cabinet_materials)
+
 # ═══════ 8. ДРЕНАЖ ═══════
 
 # ═══════ 9. ТРУБОПРОВОДНАЯ ЭСТАКАДА (УСИЛЕННАЯ) ═══════
