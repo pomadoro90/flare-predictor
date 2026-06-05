@@ -235,7 +235,7 @@ bpy.context.active_object.name = "Ground"
 cube((0, -2, 0.06), (24, 18, 0.06), name="Pad", m=MN)
 
 # ═══════ 1. СТВОЛ ═══════
-H, R, FX, FY = 38.0, 1.1, 0.0, -1.0
+H, R, FX, FY = 38.0, 0.85, 0.0, -1.0
 cyl((FX, FY, 6.1),  R, 12.0, name="Stack_L", m=MR, seg=30)
 cyl((FX, FY, 20.1), R, 16.0, name="Stack_M", m=MW, seg=30)
 cyl((FX, FY, 33.1), R, 10.0, name="Stack_U", m=MR, seg=30)
