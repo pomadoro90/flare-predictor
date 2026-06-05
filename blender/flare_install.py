@@ -410,13 +410,6 @@ SX0 = FX + math.cos(STEAM_AZ) * STEAM_R
 SY0 = FY + math.sin(STEAM_AZ) * STEAM_R
 SS_Z = 2.7  # уровень эстакады (SHOE_Z, секция 9) — начало стояка
 
-# Стояк: только от эстакады вверх (нижний конец на эстакаде, не на земле)
-pipe((SX0, SY0, SS_Z),  (SX0, SY0, 12.0), r=STEAM_PIPE_R, m=MR, seg=16, name="SteamRise_L")
-pipe((SX0, SY0, 12.0), (SX0, SY0, 28.0), r=STEAM_PIPE_R, m=MW, seg=16, name="SteamRise_M")
-pipe((SX0, SY0, 28.0), (SX0, SY0, STEAM_Z), r=STEAM_PIPE_R, m=MR, seg=16, name="SteamRise_U")
-# Горизонтальная подводка: от стояка (SS_Z) → к эстакаде по Y
-pipe((SX0, SY0, SS_Z), (SX0, -7.0, SS_Z), r=STEAM_PIPE_R*0.7, m=MS, seg=12, name="SteamFeed")
-
 # Крепления-хомуты каждые 2 метра (torus вокруг стояка + стержень к стволу)
 CLAMP_R = STEAM_PIPE_R * 1.5
 # Начинаем от SS_Z + 0.5 (чуть выше joint-а), чтобы не накладываться на стык
@@ -487,7 +480,7 @@ pressure_sensor((FX, FY-1.2, 30.0), "PS_SteamQ")
 # Подробная модель: эллиптические днища, седловидные опоры, площадка с ограждениями,
 # лестница с клеткой, патрубки с фланцами, люк, уровнемер, манометр, предупреждающие полосы
 # Координаты (используются также в секциях 9, 9a, 9c):
-SX, SY, SZ, SL, SR = -10.0, -4.5, 2.8, 7.5, 1.4
+SX, SY, SZ, SL, SR = -10.0, -6.0, 2.8, 7.5, 1.4
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from separator_new import create_separator
@@ -517,15 +510,6 @@ PURGE_Z = SHOE_Z + 0.12 + 0.03
 # (см. секцию 5 — SteamRing + Nozzles)
 
 # (датчик расхода убран вместе с продувочной линией)
-
-# ═══════ 9b. ДАТЧИКИ НА ОПОРЫ ЭСТАКАДЫ ═══════
-# Вибродатчики состояния на стойках П-образных рам (по 1 на раму, левая стойка)
-for vs_x in [-12.0, -6.0, 0.0]:
-    vs_y = RY - 0.5  # левая стойка
-    vs_z = 1.2       # высота от земли
-    cube((vs_x+0.10, vs_y, vs_z), (0.015, 0.03, 0.03), name="VibS_Brkt_{}".format(int(vs_x)), m=MS)
-    cyl((vs_x+0.10, vs_y, vs_z+0.03), 0.025, 0.05, name="VibS_Body_{}".format(int(vs_x)), m=MR, seg=8)
-    cyl((vs_x+0.10, vs_y, vs_z+0.07), 0.018, 0.025, name="VibS_Head_{}".format(int(vs_x)), m=MM, seg=8)
 
 # ═══════ 9c. ФУНДАМЕНТНАЯ ПЛИТА ПОД СЕПАРАТОР ═══════
 # Бетонная плита под всем сепаратором, выступает за габариты

@@ -30,7 +30,7 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
     from mathutils import Vector
 
     # ─── Constants ────────────────────────────────────────────
-    SX, SY, SZ, SL, SR = -10.0, -4.5, 2.8, 7.5, 1.4
+    SX, SY, SZ, SL, SR = -10.0, -6.0, 2.8, 7.5, 1.4
     GROUND_Z = 0.0
 
     # ─── Helper functions ─────────────────────────────────────
