@@ -8,17 +8,17 @@ from mathutils import Vector
 
 SCENE_PATH = "/tmp/blender-agent-2/execute/scene.blend"
 
-# Cabinet dimensions are meters: 450 x 250 x 750 mm.
-CABINET_W = 0.45
-CABINET_D = 0.25
-CABINET_H = 0.75
-PANEL_THICKNESS = 0.012
+# Cabinet dimensions are meters: 900 x 500 x 1500 mm.
+CABINET_W = 0.90
+CABINET_D = 0.50
+CABINET_H = 1.50
+PANEL_THICKNESS = 0.024
 FRONT_Y = -CABINET_D / 2
 BACK_Y = CABINET_D / 2
 LEFT_X = -CABINET_W / 2
 RIGHT_X = CABINET_W / 2
 FACE_ROT_Y_AXIS = (math.radians(90), 0.0, 0.0)
-CABINET_MOUNT_Z_OFFSET = 0.35
+CABINET_MOUNT_Z_OFFSET = 0.70
 
 
 def shifted(loc, x_offset=0.0):
@@ -93,35 +93,35 @@ def build_cabinet_body(x_offset=0.0, suffix=""):
         shifted((LEFT_X + PANEL_THICKNESS / 2, 0.0, CABINET_H / 2), x_offset),
         (PANEL_THICKNESS, CABINET_D, CABINET_H),
         bevel_segments=2,
-        bevel_depth=0.004,
+        bevel_depth=0.008,
     ))
     parts.append(make_box(
         suffixed("geo_cabinet_body_right_side", suffix),
         shifted((RIGHT_X - PANEL_THICKNESS / 2, 0.0, CABINET_H / 2), x_offset),
         (PANEL_THICKNESS, CABINET_D, CABINET_H),
         bevel_segments=2,
-        bevel_depth=0.004,
+        bevel_depth=0.008,
     ))
     parts.append(make_box(
         suffixed("geo_cabinet_body_top", suffix),
         shifted((0.0, 0.0, CABINET_H - PANEL_THICKNESS / 2), x_offset),
         (CABINET_W, CABINET_D, PANEL_THICKNESS),
         bevel_segments=2,
-        bevel_depth=0.004,
+        bevel_depth=0.008,
     ))
     parts.append(make_box(
         suffixed("geo_cabinet_body_bottom", suffix),
         shifted((0.0, 0.0, PANEL_THICKNESS / 2), x_offset),
         (CABINET_W, CABINET_D, PANEL_THICKNESS),
         bevel_segments=2,
-        bevel_depth=0.004,
+        bevel_depth=0.008,
     ))
     parts.append(make_box(
         suffixed("geo_cabinet_body_back", suffix),
         shifted((0.0, BACK_Y - PANEL_THICKNESS / 2, CABINET_H / 2), x_offset),
         (CABINET_W, PANEL_THICKNESS, CABINET_H),
         bevel_segments=2,
-        bevel_depth=0.004,
+        bevel_depth=0.008,
     ))
     return parts
 
@@ -130,31 +130,31 @@ def build_interior_back_wall(x_offset=0.0, suffix=""):
     """Light-gray interior mounting plate on the inside back wall."""
     return make_box(
         suffixed("geo_interior_back_wall", suffix),
-        shifted((0.0, 0.118, 0.382), x_offset),
-        (0.395, 0.006, 0.675),
+        shifted((0.0, 0.236, 0.764), x_offset),
+        (0.790, 0.012, 1.350),
         bevel_segments=1,
-        bevel_depth=0.002,
+        bevel_depth=0.004,
     )
 
 
 def build_cabinet_door(x_offset=0.0, suffix=""):
     """Open left-hinged front door, swung about 100 degrees around left edge."""
-    door_w = 0.43
-    door_t = 0.003
-    door_h = 0.73
+    door_w = 0.86
+    door_t = 0.006
+    door_h = 1.46
     hinge_x = LEFT_X + x_offset
-    hinge_y = FRONT_Y - 0.006
+    hinge_y = FRONT_Y - 0.012
 
     obj = make_box(
         suffixed("geo_cabinet_door", suffix),
-        (hinge_x + door_w / 2, hinge_y, door_h / 2 + 0.010),
+        (hinge_x + door_w / 2, hinge_y, door_h / 2 + 0.020),
         (door_w, door_t, door_h),
         bevel_segments=2,
-        bevel_depth=0.004,
+        bevel_depth=0.008,
     )
 
     # Move origin to the left hinge edge, then rotate the door open.
-    bpy.context.scene.cursor.location = (hinge_x, hinge_y, door_h / 2 + 0.010)
+    bpy.context.scene.cursor.location = (hinge_x, hinge_y, door_h / 2 + 0.020)
     bpy.ops.object.select_all(action="DESELECT")
     bpy.context.view_layer.objects.active = obj
     obj.select_set(True)
@@ -164,18 +164,18 @@ def build_cabinet_door(x_offset=0.0, suffix=""):
 
 
 def hinge_point_for_z(z, x_offset=0.0):
-    return (LEFT_X - 0.004 + x_offset, FRONT_Y - 0.006, z)
+    return (LEFT_X - 0.008 + x_offset, FRONT_Y - 0.012, z)
 
 
 def build_door_hinges(x_offset=0.0, suffix=""):
     """Three vertical barrel hinges on the cabinet's left front edge."""
     hinges = []
-    for hinge_suffix, z in [("bot", 0.115), ("mid", 0.375), ("top", 0.635)]:
+    for hinge_suffix, z in [("bot", 0.230), ("mid", 0.750), ("top", 1.270)]:
         hinge = make_cylinder(
             suffixed(f"geo_door_hinge_{hinge_suffix}", suffix),
             hinge_point_for_z(z, x_offset),
-            0.008,
-            0.055,
+            0.016,
+            0.110,
             segments=18,
         )
         hinges.append(hinge)
@@ -184,7 +184,7 @@ def build_door_hinges(x_offset=0.0, suffix=""):
 
 def open_door_local_to_world(local_x, local_y, local_z, x_offset=0.0):
     """Convert closed-door local coordinates to world after the 100 degree swing."""
-    hinge = Vector((LEFT_X + x_offset, FRONT_Y - 0.006, 0.0))
+    hinge = Vector((LEFT_X + x_offset, FRONT_Y - 0.012, 0.0))
     angle = math.radians(-100.0)
     cos_a = math.cos(angle)
     sin_a = math.sin(angle)
@@ -196,13 +196,13 @@ def open_door_local_to_world(local_x, local_y, local_z, x_offset=0.0):
 def build_door_locks(x_offset=0.0, suffix=""):
     """Two screw-type locks on the opened door's free edge."""
     locks = []
-    for lock_suffix, z in [("bot", 0.165), ("top", 0.600)]:
-        loc = open_door_local_to_world(0.395, -0.004, z, x_offset)
+    for lock_suffix, z in [("bot", 0.330), ("top", 1.200)]:
+        loc = open_door_local_to_world(0.790, -0.008, z, x_offset)
         lock = make_cylinder(
             suffixed(f"geo_door_lock_{lock_suffix}", suffix),
             loc,
-            0.007,
-            0.015,
+            0.014,
+            0.030,
             rot=FACE_ROT_Y_AXIS,
             segments=16,
         )
@@ -213,8 +213,8 @@ def build_door_locks(x_offset=0.0, suffix=""):
 
 def build_latch_handle(x_offset=0.0, suffix=""):
     """Black latch handle on the opened door."""
-    loc = open_door_local_to_world(0.370, -0.006, 0.580, x_offset)
-    obj = make_box(suffixed("geo_latch_handle", suffix), loc, (0.026, 0.006, 0.014), bevel_segments=1, bevel_depth=0.002)
+    loc = open_door_local_to_world(0.740, -0.012, 1.160, x_offset)
+    obj = make_box(suffixed("geo_latch_handle", suffix), loc, (0.052, 0.012, 0.028), bevel_segments=1, bevel_depth=0.004)
     obj.rotation_euler[2] = math.radians(-100.0)
     return obj
 
@@ -222,53 +222,53 @@ def build_latch_handle(x_offset=0.0, suffix=""):
 def build_panel_controls(side, x_off, panel_y, panel_z, x_offset=0.0, suffix=""):
     """Add screws, indicators and switches to one internal controller face."""
     controls = []
-    for index, (sx, sz) in enumerate([(-0.050, 0.030), (-0.050, -0.030), (0.050, 0.030), (0.050, -0.030)]):
+    for index, (sx, sz) in enumerate([(-0.100, 0.060), (-0.100, -0.060), (0.100, 0.060), (0.100, -0.060)]):
         controls.append(make_cylinder(
             suffixed(f"geo_panel_screw_{side}_{index + 1}", suffix),
-            shifted((x_off + sx, panel_y - 0.026, panel_z + sz), x_offset),
-            0.0022,
-            0.004,
+            shifted((x_off + sx, panel_y - 0.052, panel_z + sz), x_offset),
+            0.0044,
+            0.008,
             rot=FACE_ROT_Y_AXIS,
             segments=6,
         ))
 
     indicators = [
-        ("flame_1", -0.030, 0.020),
-        ("flame_2", -0.010, 0.020),
-        ("flame_3", 0.010, 0.020),
-        ("flame_4", 0.030, 0.020),
-        ("ignition", 0.020, 0.004),
+        ("flame_1", -0.060, 0.040),
+        ("flame_2", -0.020, 0.040),
+        ("flame_3", 0.020, 0.040),
+        ("flame_4", 0.060, 0.040),
+        ("ignition", 0.040, 0.008),
     ]
     for index, (iname, ix, iz) in enumerate(indicators):
         label = "flame" if "flame" in iname else "ignition"
         controls.append(make_cylinder(
             suffixed(f"geo_indicator_{side}_{label}_{index + 1}", suffix),
-            shifted((x_off + ix, panel_y - 0.026, panel_z + iz), x_offset),
-            0.003,
-            0.003,
+            shifted((x_off + ix, panel_y - 0.052, panel_z + iz), x_offset),
+            0.006,
+            0.006,
             rot=FACE_ROT_Y_AXIS,
             segments=16,
         ))
 
     controls.append(make_cylinder(
         suffixed(f"geo_rotary_switch_{side}", suffix),
-        shifted((x_off, panel_y - 0.026, panel_z - 0.020), x_offset),
-        0.012,
-        0.010,
+        shifted((x_off, panel_y - 0.052, panel_z - 0.040), x_offset),
+        0.024,
+        0.020,
         rot=FACE_ROT_Y_AXIS,
         segments=24,
     ))
     controls.append(make_box(
         suffixed(f"geo_switch_pointer_{side}", suffix),
-        shifted((x_off, panel_y - 0.026, panel_z - 0.026), x_offset),
-        (0.004, 0.003, 0.020),
+        shifted((x_off, panel_y - 0.052, panel_z - 0.052), x_offset),
+        (0.008, 0.006, 0.040),
     ))
     controls.append(make_box(
         suffixed(f"geo_toggle_switch_{side}", suffix),
-        shifted((x_off - 0.035, panel_y - 0.026, panel_z - 0.045), x_offset),
-        (0.008, 0.007, 0.012),
+        shifted((x_off - 0.070, panel_y - 0.052, panel_z - 0.090), x_offset),
+        (0.016, 0.014, 0.024),
         bevel_segments=1,
-        bevel_depth=0.001,
+        bevel_depth=0.002,
     ))
     return controls
 
@@ -276,22 +276,22 @@ def build_panel_controls(side, x_off, panel_y, panel_z, x_offset=0.0, suffix="")
 def build_control_panels(x_offset=0.0, suffix=""):
     """Two identical controller blocks inside the cabinet on the upper DIN rail."""
     panels = []
-    panel_y = 0.095
-    panel_z = 0.560
-    for side, x_off in [("L", -0.070), ("R", 0.070)]:
+    panel_y = 0.190
+    panel_z = 1.120
+    for side, x_off in [("L", -0.140), ("R", 0.140)]:
         frame = make_box(
             suffixed(f"geo_panel_frame_{side}", suffix),
             shifted((x_off, panel_y, panel_z), x_offset),
-            (0.125, 0.050, 0.085),
+            (0.250, 0.100, 0.170),
             bevel_segments=1,
-            bevel_depth=0.003,
+            bevel_depth=0.006,
         )
         face = make_box(
             suffixed(f"geo_control_panel_{side}", suffix),
-            shifted((x_off, panel_y - 0.025, panel_z), x_offset),
-            (0.115, 0.004, 0.075),
+            shifted((x_off, panel_y - 0.050, panel_z), x_offset),
+            (0.230, 0.008, 0.150),
             bevel_segments=1,
-            bevel_depth=0.002,
+            bevel_depth=0.004,
         )
         panels.extend([frame, face])
         panels.extend(build_panel_controls(side, x_off, panel_y, panel_z, x_offset, suffix))
@@ -300,14 +300,14 @@ def build_control_panels(x_offset=0.0, suffix=""):
 
 def build_upper_din_rail(x_offset=0.0, suffix=""):
     """DIN rail supporting the two controller blocks."""
-    rail = make_box(suffixed("geo_din_rail_upper", suffix), shifted((0.0, 0.108, 0.560), x_offset), (0.330, 0.010, 0.035))
+    rail = make_box(suffixed("geo_din_rail_upper", suffix), shifted((0.0, 0.216, 1.120), x_offset), (0.660, 0.020, 0.070))
     shade_flat(rail)
     return rail
 
 
 def build_din_rail(x_offset=0.0, suffix=""):
-    """35 mm Omega-profile DIN rail in the middle zone."""
-    rail = make_box(suffixed("geo_din_rail", suffix), shifted((0.0, 0.104, 0.420), x_offset), (0.350, 0.010, 0.035))
+    """Scaled Omega-profile DIN rail in the middle zone."""
+    rail = make_box(suffixed("geo_din_rail", suffix), shifted((0.0, 0.208, 0.840), x_offset), (0.700, 0.020, 0.070))
     shade_flat(rail)
     return rail
 
@@ -316,19 +316,19 @@ def build_terminal_blocks(x_offset=0.0, suffix=""):
     """Twelve WAGO-style terminal blocks on the middle DIN rail."""
     blocks = []
     for i in range(12):
-        x = -0.165 + i * 0.030
+        x = -0.330 + i * 0.060
         block = make_box(
             suffixed(f"geo_terminal_block_{i + 1:02d}", suffix),
-            shifted((x, 0.087, 0.420), x_offset),
-            (0.024, 0.030, 0.040),
+            shifted((x, 0.174, 0.840), x_offset),
+            (0.048, 0.060, 0.080),
             bevel_segments=1,
-            bevel_depth=0.002,
+            bevel_depth=0.004,
         )
         blocks.append(block)
     return blocks
 
 
-def make_tube(name, points, radius=0.0015, bevel_resolution=4):
+def make_tube(name, points, radius=0.0030, bevel_resolution=4):
     """Create a tube (bevelled curve) from a list of (x,y,z) points.
        Uses Bezier curves with automatic handles for smooth bends."""
     curve_data = bpy.data.curves.new(name, type='CURVE')
@@ -353,96 +353,96 @@ def make_tube(name, points, radius=0.0015, bevel_resolution=4):
 def build_panel_wires(x_offset=0.0, suffix=""):
     """Wiring: each relay has 2 colored wires coming DOWN from the panel,
        which SMOOTHLY MERGE into a single black trunk over a length (not a sharp Y).
-       The colored wires start offset, gradually converge inward over ~30mm,
-       then run alongside the trunk for another ~10mm before disappearing into it.
+       The colored wires start offset, gradually converge inward over ~60mm,
+       then run alongside the trunk for another ~20mm before disappearing into it.
        Plus a main bundle from cable gland rising up the left wall."""
 
-    left_x = -0.225  # cabinet left wall
-    panel_y = 0.095  # panel center depth
-    panel_bottom_z = 0.518  # bottom edge of panel frames (relay output)
-    trunk_start_z = 0.485  # where the trunk begins (higher, closer to panel)
-    trunk_end_z = 0.340  # shared merge point for the two black trunks
-    merge_complete_z = 0.470  # where colored wires fully converge to trunk center
+    left_x = -0.450  # cabinet left wall
+    panel_y = 0.190  # panel center depth
+    panel_bottom_z = 1.036  # bottom edge of panel frames (relay output)
+    trunk_start_z = 0.970  # where the trunk begins (higher, closer to panel)
+    trunk_end_z = 0.680  # shared merge point for the two black trunks
+    merge_complete_z = 0.940  # where colored wires fully converge to trunk center
 
     # === Main wire bundle: cable exit → up left wall → connect to trunk merge point ===
     bundle_pts = [
-        shifted((left_x + 0.020, 0.095, 0.100), x_offset),  # cable exit on left wall
-        shifted((left_x + 0.020, 0.095, 0.200), x_offset),  # running up left wall
-        shifted((left_x + 0.020, 0.095, 0.280), x_offset),  # still on left wall
-        shifted((-0.100, 0.095, 0.310), x_offset),          # curving inward and upward
-        shifted((0.0, 0.095, trunk_end_z), x_offset),       # connects directly to trunk merge point
+        shifted((left_x + 0.040, 0.190, 0.200), x_offset),  # cable exit on left wall
+        shifted((left_x + 0.040, 0.190, 0.400), x_offset),  # running up left wall
+        shifted((left_x + 0.040, 0.190, 0.560), x_offset),  # still on left wall
+        shifted((-0.200, 0.190, 0.620), x_offset),          # curving inward and upward
+        shifted((0.0, 0.190, trunk_end_z), x_offset),       # connects directly to trunk merge point
     ]
-    make_tube(suffixed("geo_wire_bundle", suffix), bundle_pts, radius=0.007, bevel_resolution=6)
+    make_tube(suffixed("geo_wire_bundle", suffix), bundle_pts, radius=0.014, bevel_resolution=6)
 
     # === Two colored wires per relay → smooth merge into black trunk ===
     # Each colored wire:
-    #   1. Starts offset from panel center (±12mm)
-    #   2. Gradually curves inward over ~30mm height
-    #   3. Runs alongside the trunk for ~10mm (nearly touching)
+    #   1. Starts offset from panel center (±24mm)
+    #   2. Gradually curves inward over ~60mm height
+    #   3. Runs alongside the trunk for ~20mm (nearly touching)
     #   4. Disappears into the trunk at merge_complete_z
     #
     # The trunk starts higher and the colored wires merge into it smoothly.
 
     panel_specs = [
         # (panel_x, trunk_name, w1_name, w1_mat, w1_dx, w2_name, w2_mat, w2_dx)
-        (-0.070, "geo_wire_trunk_L", "geo_wire_L1", "mat_wire_red", -0.012, "geo_wire_L2", "mat_wire_blue", 0.012),
-        ( 0.070, "geo_wire_trunk_R", "geo_wire_R1", "mat_wire_green", -0.012, "geo_wire_R2", "mat_wire_yellow", 0.012),
+        (-0.140, "geo_wire_trunk_L", "geo_wire_L1", "mat_wire_red", -0.024, "geo_wire_L2", "mat_wire_blue", 0.024),
+        ( 0.140, "geo_wire_trunk_R", "geo_wire_R1", "mat_wire_green", -0.024, "geo_wire_R2", "mat_wire_yellow", 0.024),
     ]
 
     for panel_x, trunk_name, w1_name, w1_mat, w1_dx, w2_name, w2_mat, w2_dx in panel_specs:
         # Wire 1 (colored): starts offset, gradually curves inward, then merges
         w1_pts = [
             shifted((panel_x + w1_dx, panel_y, panel_bottom_z), x_offset),  # start offset on panel
-            shifted((panel_x + w1_dx * 0.65, panel_y, panel_bottom_z - 0.012), x_offset),  # curving inward
-            shifted((panel_x + w1_dx * 0.25, panel_y, merge_complete_z + 0.008), x_offset),  # almost at center
+            shifted((panel_x + w1_dx * 0.65, panel_y, panel_bottom_z - 0.024), x_offset),  # curving inward
+            shifted((panel_x + w1_dx * 0.25, panel_y, merge_complete_z + 0.016), x_offset),  # almost at center
             shifted((panel_x, panel_y, merge_complete_z), x_offset),  # merged into trunk
         ]
-        make_tube(suffixed(w1_name, suffix), w1_pts, radius=0.0015)
+        make_tube(suffixed(w1_name, suffix), w1_pts, radius=0.0030)
 
         # Wire 2 (colored): same path on the other side
         w2_pts = [
             shifted((panel_x + w2_dx, panel_y, panel_bottom_z), x_offset),  # start offset on panel
-            shifted((panel_x + w2_dx * 0.65, panel_y, panel_bottom_z - 0.012), x_offset),  # curving inward
-            shifted((panel_x + w2_dx * 0.25, panel_y, merge_complete_z + 0.008), x_offset),  # almost at center
+            shifted((panel_x + w2_dx * 0.65, panel_y, panel_bottom_z - 0.024), x_offset),  # curving inward
+            shifted((panel_x + w2_dx * 0.25, panel_y, merge_complete_z + 0.016), x_offset),  # almost at center
             shifted((panel_x, panel_y, merge_complete_z), x_offset),  # merged into trunk
         ]
-        make_tube(suffixed(w2_name, suffix), w2_pts, radius=0.0015)
+        make_tube(suffixed(w2_name, suffix), w2_pts, radius=0.0030)
 
         # Trunk (black): starts higher, colored wires merge into it along the way
         trunk_pts = [
             shifted((panel_x, panel_y, trunk_start_z), x_offset),  # top of trunk (near panel bottom)
-            shifted((panel_x, panel_y, 0.420), x_offset),          # starts as a relay-specific trunk
-            shifted((panel_x * 0.45, panel_y, 0.365), x_offset),   # curves inward toward common merge
+            shifted((panel_x, panel_y, 0.840), x_offset),          # starts as a relay-specific trunk
+            shifted((panel_x * 0.45, panel_y, 0.730), x_offset),   # curves inward toward common merge
             shifted((0.0, panel_y, trunk_end_z), x_offset),        # merged into common trunk
         ]
-        make_tube(suffixed(trunk_name, suffix), trunk_pts, radius=0.003)
+        make_tube(suffixed(trunk_name, suffix), trunk_pts, radius=0.006)
 
 
 def build_cable(x_offset=0.0, suffix=""):
     """Black rubber cable exits left wall lower third and descends to pedestal."""
     exit_obj = make_cylinder(
         suffixed("geo_cable_exit", suffix),
-        shifted((LEFT_X - 0.004, 0.100, 0.100), x_offset),
-        0.009,
+        shifted((LEFT_X - 0.008, 0.200, 0.200), x_offset),
         0.018,
+        0.036,
         rot=(0.0, math.radians(90), 0.0),
         segments=18,
     )
     hose = make_cylinder(
         suffixed("geo_cable_hose", suffix),
-        shifted((LEFT_X - 0.018, 0.100, 0.030), x_offset),
-        0.008,
-        0.140,
+        shifted((LEFT_X - 0.036, 0.200, 0.060), x_offset),
+        0.016,
+        0.280,
         segments=18,
     )
     rings = []
     for i in range(8):
-        z = -0.032 + i * 0.018
+        z = -0.064 + i * 0.036
         ring = make_cylinder(
             suffixed(f"geo_cable_hose_corrugation_{i + 1:02d}", suffix),
-            shifted((LEFT_X - 0.018, 0.100, z), x_offset),
-            0.0095,
-            0.004,
+            shifted((LEFT_X - 0.036, 0.200, z), x_offset),
+            0.0190,
+            0.008,
             segments=18,
         )
         rings.append(ring)
@@ -474,47 +474,47 @@ def duplicate_cabinet(offset_x):
 
 def build_support_structure():
     """Outdoor support posts, crossbars, foundations, and ground plane."""
-    foundation_size = (0.20, 0.20, 0.30)
+    foundation_size = (0.40, 0.40, 0.60)
     foundation_z = foundation_size[2] / 2
-    post_width = 0.08
-    post_height = 0.80
+    post_width = 0.16
+    post_height = 1.60
     post_z = foundation_size[2] + post_height / 2
-    left_post_x = -0.30
-    right_post_x = 0.85
-    support_y = 0.125
-    crossbar_size = 0.06
+    left_post_x = -0.60
+    right_post_x = 1.70
+    support_y = 0.250
+    crossbar_size = 0.12
     crossbar_x = (left_post_x + right_post_x) / 2
     crossbar_length = (right_post_x - left_post_x) - post_width
 
-    make_box("geo_ground", (0.0, 0.0, -0.005), (2.0, 2.0, 0.01))
+    make_box("geo_ground", (0.0, 0.0, -0.010), (4.0, 4.0, 0.02))
     for name, x in [("left", left_post_x), ("right", right_post_x)]:
         make_box(
             f"geo_concrete_foundation_{name}",
             (x, support_y, foundation_z),
             foundation_size,
             bevel_segments=1,
-            bevel_depth=0.004,
+            bevel_depth=0.008,
         )
         make_box(
             f"geo_support_post_{name}",
             (x, support_y, post_z),
             (post_width, post_width, post_height),
             bevel_segments=1,
-            bevel_depth=0.003,
+            bevel_depth=0.006,
         )
     make_box(
         "geo_crossbar_upper",
-        (crossbar_x, support_y, 0.85),
+        (crossbar_x, support_y, 1.70),
         (crossbar_length, crossbar_size, crossbar_size),
         bevel_segments=1,
-        bevel_depth=0.003,
+        bevel_depth=0.006,
     )
     make_box(
         "geo_crossbar_lower",
-        (crossbar_x, support_y, 0.45),
+        (crossbar_x, support_y, 0.90),
         (crossbar_length, crossbar_size, crossbar_size),
         bevel_segments=1,
-        bevel_depth=0.003,
+        bevel_depth=0.006,
     )
 
 
@@ -522,7 +522,7 @@ def build_geometry():
     """Build all geometry objects."""
     build_support_structure()
     build_cabinet()
-    duplicate_cabinet(0.55)
+    duplicate_cabinet(1.10)
     print(f"GEOMETRY_DONE: {len([o for o in bpy.data.objects if o.type in ('MESH', 'CURVE')])} meshes+curves created")
 
 
