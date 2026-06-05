@@ -411,11 +411,11 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
             name="Sep_Support_Base_R_" + str(i), material=MN)
 
         cradle = make_cylinder(
-            (sx, SY, SZ - SR * 0.40), SR + 0.03, 0.50,
+            (sx, SY, SZ), SR + 0.03, 0.45,
             rot=(0, math_mod.radians(90), 0),
             name="Sep_Support_Cradle_" + str(i),
             material=MS, segs=24)
-        cradle.scale = (1.0, 0.5, 0.4)
+        cradle.scale = (1.0, 1.0, 0.85)
 
         make_pipe(
             (sx, support_y_l, GROUND_Z + 0.08),
