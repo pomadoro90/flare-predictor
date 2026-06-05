@@ -474,14 +474,14 @@ def duplicate_cabinet(offset_x):
 
 def build_support_structure():
     """Outdoor support posts, crossbars, foundations, and ground plane."""
-    foundation_size = (0.80, 0.80, 1.20)
+    foundation_size = (0.50, 0.30, 0.30)
     foundation_z = foundation_size[2] / 2
-    post_width = 0.32
-    post_height = 3.20
+    post_width = 0.10
+    post_height = 1.80
     post_z = foundation_size[2] + post_height / 2
-    left_post_x = -1.20
-    right_post_x = 3.40
-    support_y = 0.500
+    left_post_x = -0.50
+    right_post_x = 2.70
+    support_y = 0.30
     crossbar_size = 0.12
     crossbar_x = (left_post_x + right_post_x) / 2
     crossbar_length = (right_post_x - left_post_x) - post_width
@@ -504,14 +504,14 @@ def build_support_structure():
         )
     make_box(
         "geo_crossbar_upper",
-        (crossbar_x, support_y, 3.40),
+        (crossbar_x, support_y, 1.60),
         (crossbar_length, crossbar_size, crossbar_size),
         bevel_segments=1,
         bevel_depth=0.006,
     )
     make_box(
         "geo_crossbar_lower",
-        (crossbar_x, support_y, 1.80),
+        (crossbar_x, support_y, 0.80),
         (crossbar_length, crossbar_size, crossbar_size),
         bevel_segments=1,
         bevel_depth=0.006,
