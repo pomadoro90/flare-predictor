@@ -480,7 +480,7 @@ def build_support_structure():
     post_height = 1.80
     post_z = foundation_size[2] + post_height / 2
     left_post_x = LEFT_X
-    right_post_x = RIGHT_X + 2.20
+    right_post_x = RIGHT_X + 1.00
     support_y = 0.30
     crossbar_size = 0.12
     crossbar_x = (left_post_x + right_post_x) / 2
@@ -522,7 +522,7 @@ def build_geometry():
     """Build all geometry objects."""
     build_support_structure()
     build_cabinet()
-    duplicate_cabinet(2.20)
+    duplicate_cabinet(1.00)
     print(f"GEOMETRY_DONE: {len([o for o in bpy.data.objects if o.type in ('MESH', 'CURVE')])} meshes+curves created")
 
 

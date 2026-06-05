@@ -480,7 +480,7 @@ _ground = bpy.data.objects.get('geo_ground')
 if _ground:
     bpy.data.objects.remove(_ground, do_unlink=True)
 _cabinet_builder.build_cabinet()
-_cabinet_builder.duplicate_cabinet(2.20)
+_cabinet_builder.duplicate_cabinet(1.00)
 _cabinet_created = [obj for obj in bpy.data.objects if obj not in _cabinet_existing]
 _cabinet_dx = SX - 4.5
 _cabinet_dy = SY - 2.0
