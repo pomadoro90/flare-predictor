@@ -7,7 +7,6 @@ Function: create_separator(bpy, math, MW, MS, MY, MM, MN, MR)
 """
 
 import math
-import bmesh
 
 
 def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
@@ -325,15 +324,6 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
                          rot=(0, math_mod.radians(90), 0),
                          name="Sep_Body", material=MW, segs=30)
 
-    # Remove cylinder end caps (they cause visible seams with heads)
-    bm = bmesh.new()
-    bm.from_mesh(body.data)
-    cap_faces = [f for f in bm.faces if abs(f.normal.x) > 0.9]
-    bmesh.ops.delete(bm, geom=cap_faces, context='FACES_ONLY')
-    bm.to_mesh(body.data)
-    bm.free()
-    body.data.update()
-
     # Elliptical heads at both ends (elongated UV hemispheres)
     head_scale_x = 0.6  # elliptical head depth ~0.6 * SR
     vessel_parts = [body]
@@ -353,12 +343,12 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
         bpy.ops.mesh.select_all(action='DESELECT')
         bpy.ops.object.mode_set(mode='OBJECT')
 
-        threshold = 0.05 * SR
+        threshold = 0.01 * SR
         for vertex in head.data.vertices:
             if side_label == "L":
-                vertex.select = vertex.co.x >= -threshold
+                vertex.select = vertex.co.x > threshold
             else:
-                vertex.select = vertex.co.x <= threshold
+                vertex.select = vertex.co.x < -threshold
 
         bpy.ops.object.mode_set(mode='EDIT')
         bpy.ops.mesh.delete(type='VERT')
@@ -869,20 +859,6 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
             make_curve_tube(
                 ring_pts, radius=cage_bar_r, material=MS,
                 name="Sep_Ladder_CageR_" + str(ri))
-
-        # Add top ring if the last regular ring doesn't reach cage_end_z
-        last_ring_z = cage_start_z + (n_rings - 1) * 0.40
-        if abs(last_ring_z - cage_end_z) > 0.05:
-            top_ring_pts = []
-            for si in range(n_arc_pts + 1):
-                t = si / n_arc_pts
-                angle = math_mod.pi * (1.0 - t)
-                px = lad_x + math_mod.cos(angle) * cage_rx
-                py = lad_y + math_mod.sin(angle) * cage_ry
-                top_ring_pts.append((px, py, cage_end_z))
-            make_curve_tube(
-                top_ring_pts, radius=cage_bar_r, material=MS,
-                name="Sep_Ladder_CageR_Top")
 
     # ═══════════════════════════════════════════════════════════
     # 6. SMALL DETAILS
