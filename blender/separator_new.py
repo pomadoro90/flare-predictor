@@ -478,29 +478,6 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
 
     # ── (Manhole removed from left head per reference — no manhole on left end cap) ──
 
-    # ── Level gauge (right side, vertical pipe with flags) ──
-    lg_x = SX + SL * 0.25
-    lg_y = SY + SR * 0.5      # Y-offset to be visible from camera
-    lg_z_bottom = SZ - SR * 0.35
-    lg_z_top = SZ + SR * 0.15
-    # Vertical pipe
-    make_pipe(
-        (lg_x, lg_y, lg_z_bottom), (lg_x, lg_y, lg_z_top + 0.08),
-        radius=0.03, material=MS, segs=8,
-        name="Sep_LG_Pipe")
-    make_disc_flange(
-        (lg_x, lg_y, lg_z_top + 0.08), (0, 0, 1), 0.03,
-        name_prefix="Sep_LG", flange_scale=1.5, material=MS)
-    # Flag indicators at intervals (small yellow cylinders)
-    n_flags = 6
-    for fi in range(n_flags):
-        frac = fi / (n_flags - 1)
-        fz = lg_z_bottom + (lg_z_top - lg_z_bottom) * frac
-        make_cylinder(
-            (lg_x, lg_y, fz), 0.045, 0.02,
-            name="Sep_LG_Flag_{}".format(fi),
-            material=MY, segs=8)
-
     # ── Pressure gauge assembly: nozzle, valve, detailed dial ──
     pg_x = SX - SL * 0.15
     pg_y = SY + SR * 0.3     # slight Y-offset
