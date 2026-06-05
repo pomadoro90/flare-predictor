@@ -15,6 +15,7 @@
   5. ГОРЕЛКА — Burner_B + сопло + пламя (конус 7м) + дежурные горелки (3) + паровой коллектор + газовый коллектор
   6. ДАТЧИКИ НА СТВОЛЕ — P_flare, Q_flare, P_purge, Q_purge (давление), T_flame (темп.), Steam_Q
   7. СЕПАРАТОР — горизонтальный 7.5×Ø2.8м, опоры, уровнемер, манометр, лестница-клетка
+ 7b. ТРУБОПРОВОДНАЯ ЭСТАКАДА — ГАЗ И ПАР: routed линии от сепаратора к стволу
   8. ДРЕНАЖ — вертикальная ёмкость Ø0.9×2.4м, уровнемер
   9. ТРУБОПРОВОДНАЯ ЭСТАКАДА — П-образные рамы на фундаментах, линии: сброс, продувка, конденсат, пар
  9a. ДАТЧИК РАСХОДА НА ПРОДУВОЧНОЙ ЛИНИИ — корпус + измерительный элемент (X=-3, Y=RY+0.3)
@@ -490,6 +491,39 @@ for _cabinet_obj in _cabinet_created:
 
 _cabinet_materials = _cabinet_builder.make_all_materials()
 _cabinet_builder.assign_materials(_cabinet_materials)
+
+# ═══════ 7b. ТРУБОПРОВОДНАЯ ЭСТАКАДА — ГАЗ И ПАР ═══════
+RY = -7.0
+BEAM_Z = 2.6
+SHOE_Z = BEAM_Z + 0.08
+
+stub_x = SX + SL * 0.3
+stub_z = SZ + SR + 0.35
+
+route([
+    (stub_x, SY + 0.6, stub_z),
+    (stub_x, RY, stub_z),
+    (stub_x, RY, SHOE_Z + 0.20),
+    (0.5, RY, SHOE_Z + 0.20),
+    (0.5, RY, 3.8),
+    (0.5, FY - R, 3.8),
+], r=0.20, m=MY, seg=16, name="GasPipe")
+
+steam_x = stub_x + 0.5
+route([
+    (steam_x, SY + 0.3, stub_z),
+    (steam_x, RY, stub_z),
+    (steam_x, RY, SHOE_Z + 0.40),
+    (SX0, RY, SHOE_Z + 0.40),
+    (SX0, RY, SS_Z),
+    (SX0, SY0, SS_Z),
+], r=0.12, m=MR, seg=16, name="SteamPipe")
+
+# Небольшой паровой патрубок от корпуса сепаратора к подводящей линии.
+pipe((steam_x, SY, stub_z), (steam_x, SY + 0.3, stub_z),
+     r=0.12, m=MR, seg=16, name="SteamSepBranch")
+cyl((steam_x, SY + 0.3, stub_z), 0.18, 0.06,
+    rot=(math.pi / 2, 0, 0), name="SteamSepBranch_Flange", m=MS, seg=16)
 
 # ═══════ 8. ДРЕНАЖ ═══════
 
