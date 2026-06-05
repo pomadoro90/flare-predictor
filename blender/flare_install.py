@@ -487,22 +487,13 @@ pressure_sensor((FX, FY-1.2, 30.0), "PS_SteamQ")
 # Подробная модель: эллиптические днища, седловидные опоры, площадка с ограждениями,
 # лестница с клеткой, патрубки с фланцами, люк, уровнемер, манометр, предупреждающие полосы
 # Координаты (используются также в секциях 9, 9a, 9c):
-SX, SY, SZ, SL, SR = -7.0, -4.5, 2.8, 7.5, 1.4
+SX, SY, SZ, SL, SR = -10.0, -4.5, 2.8, 7.5, 1.4
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from separator_new import create_separator
 create_separator(bpy, math, MW, MS, MY, MM, MN, MR)
 
 # ═══════ 8. ДРЕНАЖ ═══════
-DX, DY = -11.5, -5.0
-cube((DX, DY, 0.2), (0.6, 0.6, 0.2), name="Drn_Ft", m=MN)
-cyl((DX, DY, 1.6), 0.45, 2.4, name="Drain", m=MS, seg=22)
-cyl((DX, DY, 2.9), 0.45, 0.10, name="Drain_Top", m=MS, seg=22)
-cyl((DX-0.5, DY, 2.0), 0.07, 0.35, name="Drain_In", m=MY, seg=10)
-
-# Датчик уровня на дренаже
-pipe((DX+0.6, DY, 0.5), (DX+0.6, DY, 2.7), r=0.025, m=MS, seg=8, name="Drn_LG")
-cyl((DX+0.6, DY, 2.7), 0.04, 0.03, name="Drn_LGHead", m=MM, seg=10)
 
 # ═══════ 9. ТРУБОПРОВОДНАЯ ЭСТАКАДА (УСИЛЕННАЯ) ═══════
 RY = -7.0
@@ -513,34 +504,8 @@ SHOE_Z = BEAM_Z + 0.08
 FLARE_Z = SHOE_Z + 0.17 + 0.03
 PURGE_Z = SHOE_Z + 0.12 + 0.03
 
-# Фундаменты (крупные, заметные)
-for rx in range(-12, 4, RACK_SPAN):
-    rx = float(rx)
-    for sy in [RY-0.5, RY+0.5]:
-        cube((rx, sy, 0.20), (0.30, 0.30, 0.20), name="RackFt_{}_{}".format(int(rx), "L" if sy<RY else "R"), m=MN)
-
-# П-образные рамы — КРАСНЫЕ стойки, СЕРЫЕ балки
-for rx in range(-12, 4, RACK_SPAN):
-    rx = float(rx)
-    for sy in [RY-0.5, RY+0.5]:
-        # Стойка — толстая и красная
-        cube((rx, sy, BEAM_Z/2), (COL_W/2, COL_W/2, BEAM_Z/2), name="RackCol_{}_{}".format(int(rx), "L" if sy<RY else "R"), m=MR)
-    # Ригель — широкая балка
-    cube((rx, RY, BEAM_Z), (COL_W/2, 0.50, 0.06), name="RackBeam_{}".format(int(rx)), m=MS)
-
-# Седельные опоры (заметные блоки)
-for rx in range(-12, 4, RACK_SPAN):
-    cube((float(rx), RY, SHOE_Z-0.02), (0.04, 0.18, 0.06), name="FlareShoe_{}".format(int(rx)), m=MW)
-
 # СБРОСНОЙ ГАЗ (FlareGas): сепаратор → эстакада → ствол (горизонтально, прямой угол)
 # От сепаратора горизонтально до эстакады, спуск у эстакады, дальше горизонтально до ствола
-route([
-    (SX+2.0, SY, SZ+SR+0.4),       # 0: выход из сепаратора (верхний патрубок, z≈3.4)
-    (SX+2.0, RY,  SZ+SR+0.4),       # 1: горизонтально к эстакаде (на том же уровне)
-    (SX+2.0, RY,  FLARE_Z),         # 2: вертикально вниз на уровень эстакады
-    (FX,     RY,  FLARE_Z),         # 3: горизонтально до X=ствола
-    (FX,     FY,  FLARE_Z),         # 4: к стволу по Y
-], r=0.13, m=MY, seg=14, name="FlareGas")
 
 # ПРОДУВОЧНЫЙ ГАЗ (Purge): подаётся через внутренний стояк, отдельная наружная труба не нужна
 
@@ -550,9 +515,6 @@ route([
 # ПАР (Steam): магистраль скрыта внутри ствола, снаружи только паровое кольцо + форсунки
 # Внешняя паровая труба не нужна — пар подаётся по внутреннему стояку
 # (см. секцию 5 — SteamRing + Nozzles)
-
-# Опорная стойка под паровую подводку SteamFeed
-cube((SX0, -7.0, SS_Z/2), (0.06, 0.06, SS_Z/2), name="SteamFeed_Support", m=MR)
 
 # (датчик расхода убран вместе с продувочной линией)
 
@@ -567,7 +529,6 @@ for vs_x in [-12.0, -6.0, 0.0]:
 
 # ═══════ 9c. ФУНДАМЕНТНАЯ ПЛИТА ПОД СЕПАРАТОР ═══════
 # Бетонная плита под всем сепаратором, выступает за габариты
-cube((SX, SY, 0.07), (SL/2+0.8, SR+0.6, 0.06), name="Sep_Foundation", m=MN)
 
 # ═══════ 10. СВЕТ ═══════
 bpy.ops.object.light_add(type='SUN', location=(25, -20, 35))
