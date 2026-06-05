@@ -320,18 +320,51 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
     # 1. MAIN BODY
     # ═══════════════════════════════════════════════════════════
     # Horizontal cylinder (rotated to X-axis)
-    make_cylinder((SX, SY, SZ), SR, SL,
-                  rot=(0, math_mod.radians(90), 0),
-                  name="Sep_Body", material=MW, segs=30)
+    body = make_cylinder((SX, SY, SZ), SR, SL,
+                         rot=(0, math_mod.radians(90), 0),
+                         name="Sep_Body", material=MW, segs=30)
 
     # Elliptical heads at both ends (elongated UV hemispheres)
     head_scale_x = 0.6  # elliptical head depth ~0.6 * SR
+    vessel_parts = [body]
     for side_label, x_offset in [("L", -SL / 2), ("R", SL / 2)]:
         head = make_uvsphere(
             (SX + x_offset, SY, SZ), SR,
-            name="Sep_Head_" + side_label,
+            name="Sep_Head_Temp_" + side_label,
             material=MW, segs=20)
         head.scale = (head_scale_x, 1.0, 1.0)
+
+        bpy.ops.object.select_all(action='DESELECT')
+        bpy.context.view_layer.objects.active = head
+        head.select_set(True)
+        bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+        bpy.ops.object.mode_set(mode='EDIT')
+        bpy.ops.mesh.select_mode(type='VERT')
+        bpy.ops.mesh.select_all(action='DESELECT')
+        bpy.ops.object.mode_set(mode='OBJECT')
+
+        threshold = 0.01 * SR
+        for vertex in head.data.vertices:
+            if side_label == "L":
+                vertex.select = vertex.co.x > threshold
+            else:
+                vertex.select = vertex.co.x < -threshold
+
+        bpy.ops.object.mode_set(mode='EDIT')
+        bpy.ops.mesh.delete(type='VERT')
+        bpy.ops.object.mode_set(mode='OBJECT')
+        vessel_parts.append(head)
+
+    bpy.ops.object.select_all(action='DESELECT')
+    for part in vessel_parts:
+        part.select_set(True)
+    bpy.context.view_layer.objects.active = body
+    bpy.ops.object.join()
+    vessel = bpy.context.active_object
+    vessel.name = "Sep_Body"
+    vessel.data.name = "Sep_Body_Mesh"
+    assign_mat(vessel, MW)
+    bpy.ops.object.shade_smooth()
 
     # ═══════════════════════════════════════════════════════════
     # 2. MASSIVE STEEL BEAM SUPPORTS
@@ -378,11 +411,11 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
             name="Sep_Support_Base_R_" + str(i), material=MN)
 
         cradle = make_cylinder(
-            (sx, SY, SZ - SR + 0.02), SR + 0.03, 0.10,
+            (sx, SY, SZ - SR * 0.40), SR + 0.03, 0.50,
             rot=(0, math_mod.radians(90), 0),
             name="Sep_Support_Cradle_" + str(i),
             material=MS, segs=24)
-        cradle.scale = (1.0, 0.5, 1.0)
+        cradle.scale = (1.0, 0.5, 0.4)
 
         make_pipe(
             (sx, support_y_l, GROUND_Z + 0.08),
@@ -433,7 +466,7 @@ def create_separator(bpy, math_mod, MW, MS, MY, MM, MN, MR):
     # Small nozzle port on the lower portion of the left elliptical head,
     # pointing outward at an angle (left and slightly down)
     head_center_x = SX - SL / 2
-    head_a = SL * 0.25
+    head_a = head_scale_x * SR
     head_b = SR
     head_drain_angle = math_mod.radians(240)
     head_drain_x = head_center_x + head_a * math_mod.cos(head_drain_angle)
