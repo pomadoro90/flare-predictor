@@ -487,7 +487,7 @@ pressure_sensor((FX, FY-1.2, 30.0), "PS_SteamQ")
 # Подробная модель: эллиптические днища, седловидные опоры, площадка с ограждениями,
 # лестница с клеткой, патрубки с фланцами, люк, уровнемер, манометр, предупреждающие полосы
 # Координаты (используются также в секциях 9, 9a, 9c):
-SX, SY, SZ, SL, SR = -7.0, -4.5, 1.6, 7.5, 1.4
+SX, SY, SZ, SL, SR = -7.0, -4.5, 2.8, 7.5, 1.4
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from separator_new import create_separator
